@@ -3,6 +3,15 @@
 Proof of concept app built on Heroku
 Access the app (insert URL here)
 
+## Feature Checklist
+
+- [x] Create basic graph database in neo4j
+- [ ] Visualize graph DB on the web
+- [ ] Add a person to the family tree
+  - [ ] STRETCH: Automatically generate connections
+- [ ] View all memories in the family
+- [ ] Create a new memory
+
 ## Run Locally
 
 1. Install Neo4j desktop
