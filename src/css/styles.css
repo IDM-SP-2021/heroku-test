@@ -1,0 +1,9 @@
+*,
+*::before,
+*::after {
+	font-family: "Arial";
+}
+
+#graph {
+	height: 1000px;
+}
