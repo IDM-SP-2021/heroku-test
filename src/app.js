@@ -9,8 +9,6 @@ var api = require('./scripts/neo4j')
 $(function () {
   console.log('Page loaded.');
   renderGraph();
-  // api.getGraph();
-  // console.log(api.getGraph())
 });
 
 const renderGraph = () => {
