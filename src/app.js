@@ -26,11 +26,9 @@ const renderGraph = () => {
       const nodes = graph.nodes.map(d => Object.create(d));
 
       const simulation = d3.forceSimulation(nodes)
-          .force('link', d3.forceLink(links).distance(60))
-          .force('charge', d3.forceCenter(width / 2, height / 2));
-
-      // const svg = d3.create('svg')
-      //     .attr('viewbox', [0, 0, width, height]);
+          .force('link', d3.forceLink(links).distance(400))
+          .force("charge", d3.forceManyBody())
+          .force('center', d3.forceCenter(width / 2, height / 2));
 
       const link = svg.append('g')
           .attr('stroke', '#999')
@@ -48,14 +46,14 @@ const renderGraph = () => {
         .selectAll('circle')
         .data(nodes)
         .join('circle')
-          .attr('r', 10)
+          .attr('r', 70)
           .attr('fill', '#3BCEAC')
           .call(drag(simulation));
 
-      node.append('title')
-        .text(d => {
-          return d.title;
-        });
+        node.append('title')
+          .text(d => {
+            return d.id;
+          });
 
         simulation.on('tick', () => {
           link
@@ -98,57 +96,3 @@ const renderGraph = () => {
           .on("end", dragended);
     }
 }
-
-// const renderGraph = () => {
-//     var width = 800, height = 800;
-//   var force = d3.layout.force()
-//     .charge(-200).linkDistance(20).size([width, height]);
-
-//   var svg = d3.select("#graph").append("svg")
-//     .attr("width", "100%").attr("height", "100%")
-//     .attr("pointer-events", "all");
-
-//   api
-//     .getGraph()
-//     .then(graph => {
-//       force.nodes(graph.nodes).links(graph.links).start();
-
-//       var link = svg.selectAll(".link")
-//         .data(graph.links).enter()
-//         .append("line").attr("class", "link");
-
-//       var node = svg.selectAll(".node")
-//         .data(graph.nodes).enter()
-//         .append("circle")
-//         .attr("class", d => {
-//           return "node " + d.label
-//         })
-//         .attr("r", 30)
-//         .call(force.drag);
-
-//       // html title attribute
-//       node.append("title")
-//         .text(d => {
-//           return d.name;
-//         });
-
-//       // force feed algo ticks
-//       force.on("tick", () => {
-//         link.attr("x1", d => {
-//           return d.source.x;
-//         }).attr("y1", d => {
-//           return d.source.y;
-//         }).attr("x2", d => {
-//           return d.target.x;
-//         }).attr("y2", d => {
-//           return d.target.y;
-//         });
-
-//         node.attr("cx", d => {
-//           return d.x;
-//         }).attr("cy", d => {
-//           return d.y;
-//         });
-//       });
-//     });
-// };
