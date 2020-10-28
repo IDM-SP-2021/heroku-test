@@ -12,7 +12,7 @@ $(function () {
 });
 
 const renderGraph = () => {
-  var width = 800, height = 800;
+  var width = window.innerWidth, height = 800;
 
   var svg = d3.select('#graph').append('svg')
     .attr('width', '100%')
@@ -26,7 +26,7 @@ const renderGraph = () => {
       const nodes = graph.nodes.map(d => Object.create(d));
 
       const simulation = d3.forceSimulation(nodes)
-          .force('link', d3.forceLink(links).distance(400))
+          .force('link', d3.forceLink(links).distance(250))
           .force("charge", d3.forceManyBody())
           .force('center', d3.forceCenter(width / 2, height / 2));
 
@@ -46,7 +46,7 @@ const renderGraph = () => {
         .selectAll('circle')
         .data(nodes)
         .join('circle')
-          .attr('r', 70)
+          .attr('r', 50)
           .attr('fill', '#3BCEAC')
           .call(drag(simulation));
 
