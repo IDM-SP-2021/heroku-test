@@ -1,5 +1,9 @@
 var neo4j = require('neo4j-driver').v1
-var driver = neo4j.driver("bolt://localhost:7687", neo4j.auth.basic("neo4j", "abcde"));
+
+const neo4jHost = process.env.N4J_HOST;
+const neo4jUser = process.env.N4J_USER;
+const neo4jPass = process.env.N4J_PASS
+var driver = neo4j.driver(neo4jHost, neo4j.auth.basic(neo4jUser, neo4jPass));
 
 function getGraph() {
   var session = driver.session();

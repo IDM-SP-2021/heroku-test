@@ -6,7 +6,8 @@ Access the app (insert URL here)
 ## Feature Checklist
 
 - [x] Create basic graph database in neo4j
-- [ ] Visualize graph DB on the web
+- [x] Visualize graph DB in web view
+- [ ] Visualize graph DB in tree view
 - [ ] Add a person to the family tree
   - [ ] STRETCH: Automatically generate connections
 - [ ] View all memories in the family

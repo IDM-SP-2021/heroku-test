@@ -1,8 +1,9 @@
 'use strict';
 
-const Webpack = require('webpack');
+const webpack = require('webpack');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 const buildDir = path.join(__dirname, 'build');
 
@@ -29,7 +30,8 @@ module.exports = {
   },
 
   plugins: [
-    new HtmlWebpackPlugin({template: 'src/index.html'})
+    new HtmlWebpackPlugin({template: 'src/index.html'}),
+    new Dotenv()
   ],
 
   resolve: {
