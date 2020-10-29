@@ -7,7 +7,13 @@ const buildDir = path.join(__dirname, 'build');
 
 module.exports = {
   entry: {
-    app: './src/app.js'
+    app: './src/app.js',
+    neo4j: './src/scripts/neo4j.js',
+  },
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+    }
   },
   plugins: [
     new CleanWebpackPlugin(),
@@ -18,7 +24,7 @@ module.exports = {
     new Dotenv()
   ],
   output: {
-    filename: 'app.js',
+    filename: '[name].bundle.js',
     path: buildDir,
   },
   resolve: {

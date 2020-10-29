@@ -1,6 +1,5 @@
 import './css/styles.css';
 var $ = require('jquery');
-const _ = require('lodash');
 const d3 = require('d3');
 
 var api = require('./scripts/neo4j')
