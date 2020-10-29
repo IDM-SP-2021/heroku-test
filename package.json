@@ -24,8 +24,7 @@
     "d3-force": "^2.1.1",
     "jquery": "^3.5.1",
     "lodash": "^4.17.20",
-    "neo4j-driver": "^1.7.7",
-    "popper.js": "^1.16.1"
+    "neo4j-driver": "^1.7.7"
   },
   "devDependencies": {
     "css-loader": "^5.0.0",
