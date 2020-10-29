@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "clean": "rimraf build",
-    "build-dev": "webpack",
-    "start": "webpack serve"
+    "build": "webpack",
+    "start": "webpack serve",
+    "heroku-postbuild": "webpack -p --config ./webpack.prod.config.js --progress"
   },
   "repository": {
     "type": "git",
