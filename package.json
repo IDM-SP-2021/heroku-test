@@ -2,7 +2,10 @@
   "name": "heroku-test",
   "version": "1.0.0",
   "description": "Proof of concept app built on Heroku",
-  "main": "index.js",
+  "main": "./src/app.js",
+  "engines": {
+    "node": "14.14.0"
+  },
   "scripts": {
     "start": "webpack-dev-server --open --config webpack.dev.js",
     "build": "webpack --config webpack.prod.js",
