@@ -4,7 +4,6 @@ const d3 = require('d3');
 
 var api = require('./scripts/neo4j')
 
-
 $(function () {
   console.log('Page loaded.');
   renderGraph();
@@ -65,8 +64,6 @@ const renderGraph = () => {
             .attr('cx', d => d.x)
             .attr('cy', d => d.y)
         });
-
-        // invalidation.then(() => simulation.stop());
 
         return svg.node();
     })

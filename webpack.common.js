@@ -1,7 +1,7 @@
 const path = require('path');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const Dotenv = require('dotenv-webpack');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const buildDir = path.join(__dirname, 'build');
 
@@ -21,6 +21,7 @@ module.exports = {
       template: 'src/index.html',
       title: 'Production'
     }),
+    new MiniCssExtractPlugin(),
   ],
   output: {
     filename: '[name].bundle.js',
@@ -32,13 +33,8 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        enforce: 'pre',
-        use: ['source-map-loader'],
-      },
-      {
         test: /\.css$/i,
-        use: ['style-loader', 'css-loader'],
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
       }
     ]
   }
