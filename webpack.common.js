@@ -21,7 +21,6 @@ module.exports = {
       template: 'src/index.html',
       title: 'Production'
     }),
-    new Dotenv()
   ],
   output: {
     filename: '[name].bundle.js',
