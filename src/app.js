@@ -15,7 +15,13 @@ const renderGraph = () => {
   var svg = d3.select('#graph').append('svg')
     .attr('width', '100%')
     .attr('height', '100%')
-    .attr('pointer-events', 'all');
+    .attr('pointer-events', 'all')
+    .style('cursor', 'move');
+
+  const g = svg.append('g');
+
+  const x = d3.scaleLinear([0, 1], [0, 100]);
+  const y = d3.scaleLinear([0, 1], [0, 100]);
 
   api
     .getGraph()
@@ -23,29 +29,35 @@ const renderGraph = () => {
       const links = graph.links.map(d => Object.create(d));
       const nodes = graph.nodes.map(d => Object.create(d));
 
+      console.log(nodes);
+
       const simulation = d3.forceSimulation(nodes)
           .force('link', d3.forceLink(links).distance(250))
-          .force("charge", d3.forceManyBody())
+          .force('charge', d3.forceManyBody())
           .force('center', d3.forceCenter(width / 2, height / 2));
 
-      const link = svg.append('g')
+      const link = g
           .attr('stroke', '#999')
-          .attr('stroke-opacity', 0.6)
           .attr('class', 'links')
         .selectAll('line')
         .data(links)
         .join('line')
-          .attr('stroke-width', '3');
+          .attr('stroke-width', '3')
+          .attr('stroke', '#999')
+          .attr('class', 'link');
 
-      const node = svg.append('g')
+      const node = g
           .attr('stroke', '#fff')
           .attr('stroke-width', 1.5)
           .attr('class', 'node')
         .selectAll('circle')
         .data(nodes)
         .join('circle')
-          .attr('r', 50)
+          // .attr('r', 50)
           .attr('fill', '#3BCEAC')
+          .attr('cx', d => x(d[1]))
+          .attr('cy', d => y(d[2]))
+          .attr('id', d => d.id)
           .call(drag(simulation));
 
         node.append('title')
@@ -65,7 +77,21 @@ const renderGraph = () => {
             .attr('cy', d => d.y)
         });
 
-        return svg.node();
+        let transform;
+
+        const zoom = d3.zoom().on('zoom', e => {
+          g.attr('transform', (transform = e.transform));
+          g.style('stroke-width', 3 / Math.sqrt(transform.k));
+          node.attr('r', 50 / Math.sqrt(transform.k));
+        });
+
+        return svg
+          .call(zoom)
+          .call(zoom.transform, d3.zoomIdentity)
+          // .on('pointermove', event => {
+          //   const p =
+          // })
+          .node();
     })
 
     const drag = simulation => {
