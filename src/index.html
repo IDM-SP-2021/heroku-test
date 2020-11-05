@@ -12,8 +12,41 @@
 </head>
 <body>
   <header>
-    <h1>Hello world!</h1>
+    <h1><span class="brand-name">afiye.</span> Proof of Concept</h1>
   </header>
-  <div id="graph"></div>
+  <main>
+    <div id="family-info">
+      <h2>Current Family Members</h2>
+      <ul id="node-list">
+        <!-- Family member names will be injected here -->
+      </ul>
+
+      <form id="add-member">
+        <div class="form-control">
+          <label for="new-name">Add a new family member:</label>
+          <input type="text" name="new-name" id="new-name" required>
+        </div>
+        <div class="form-control">
+          <label for="relationship">Relationshipto a current family member:</label>
+          <select name="relationship" id="relationship">
+            <option value="child">Child of</option>
+            <option value="parent">Parent of</option>
+            <option value="sibling">Sibling of</option>
+          </select>
+        </div>
+        <div class="form-control">
+          <label for="current-members">Current family member:</label>
+          <select name="current-members" id="current-members">
+            <!-- Family member names will be injected here -->
+          </select>
+        </div>
+        <div class="form-control">
+          <input type="submit" value="Add New Member">
+        </div>
+      </form>
+    </div>
+
+    <div id="graph"></div>
+  </main>
 </body>
 </html>

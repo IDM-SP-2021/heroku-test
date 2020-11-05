@@ -1,3 +1,4 @@
+import { makeArray } from 'jquery';
 import './css/styles.css';
 var $ = require('jquery');
 const d3 = require('d3');
@@ -5,12 +6,18 @@ const d3 = require('d3');
 var api = require('./scripts/neo4j')
 
 $(function () {
-  console.log('Page loaded.');
   renderGraph();
+  makeList();
+
+  $('#add-member').on('submit', (e) => {
+    e.preventDefault();
+    addMember();
+  })
 });
 
 const renderGraph = () => {
-  var width = window.innerWidth, height = 800;
+  // var width = window.innerWidth, height = 800;
+  var width = $('#graph').width(), height = $('#graph').height();
 
   var svg = d3.select('#graph').append('svg')
     .attr('width', '100%')
@@ -117,4 +124,62 @@ const renderGraph = () => {
           .on("drag", dragged)
           .on("end", dragended);
     }
+}
+
+const makeList = () => {
+  const memberList = $('#node-list');
+  const memberSelect = $('#current-members');
+  var familyMembers = [];
+
+  if ($('.member').length > 0) {
+    $('.member').each(function() {
+      console.log(this.id);
+      var elId = this.id;
+      var memberName = elId.substring(elId.indexOf("-") + 1);
+      familyMembers.push(memberName);
+    });
+  }
+
+  api
+    .getFamily()
+    .then(family => {
+      family.forEach(member => {
+        var memberName = member.name;
+        var listId = `member-${memberName.toLowerCase()}`
+
+        if (familyMembers.includes(memberName.toLowerCase()) === false) {
+          memberList.append(`<li id="${listId}" class="member">${member.name}</li>`);
+
+          memberSelect.append(`<option value=${memberName.toLowerCase()}>${memberName}</option>`);
+
+          familyMembers.push(memberName)
+        }
+      });
+    })
+}
+
+const addMember = () => {
+  var query = $.trim($('#new-name').val());
+  if (query !== "" && query !== undefined) {
+    console.log('Query is valid: ' + query);
+
+    api
+      .checkFamily(query)
+      .then(members => {
+        console.log(members);
+        if (members.length > 0) {
+          console.log('Person with that name already exists');
+        } else {
+          console.log('Person does not exist yet');
+          api
+            .addFamilyMember(query)
+            .then(result => {
+              renderGraph();
+              makeList();
+            });
+        }
+      })
+  } else {
+    console.log('Query is invalid');
+  }
 }

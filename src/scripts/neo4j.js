@@ -5,7 +5,8 @@ const neo4jUser = process.env.N4J_USER;
 const neo4jPass = process.env.N4J_PASS
 var driver = neo4j.driver(neo4jHost, neo4j.auth.basic(neo4jUser, neo4jPass));
 
-function getGraph() {
+// Return all Person nodes and connections
+const getGraph = () => {
   var session = driver.session();
 
   return Promise.all([
@@ -52,4 +53,80 @@ function getGraph() {
   })
 }
 
+// Return a list of all family members
+const getFamily = () => {
+  var session = driver.session();
+
+  return session
+    .run(
+      'MATCH (p:Person)\
+      RETURN ID(p) AS id, p.name AS name'
+    )
+    .then(results => {
+      var members = [];
+
+      results.records.forEach(res => {
+        var id = res.get('id').low;
+        var name = res.get('name');
+
+        members.push({id, name});
+      })
+
+      console.log(members);
+
+      return members;
+    })
+    .catch(error => {
+      throw error;
+    })
+    .finally(() => {
+      return session.close();
+    })
+}
+
+// Check if node exists in database
+const checkFamily = (queryString) => {
+  var session = driver.session();
+
+  return session
+    .run(
+      'MATCH (p:Person) \
+      WHERE p.name =~ $name \
+      RETURN p',
+      {name: queryString}
+    )
+    .then(result => {
+      return result.records.map(record => {
+        return record.get('p');
+      });
+    })
+    .catch(error => {
+      throw error;
+    })
+    .finally(() => {
+      return session.close();
+    })
+}
+
+const addFamilyMember = (queryString) => {
+  var session = driver.session();
+
+  return session
+    .run(
+      'CREATE (n:Person {name: $name})',
+      {name: queryString}
+    ).then(result => {
+      console.log('Added node');
+    })
+    .catch(error => {
+      throw error;
+    })
+    .finally(() => {
+      return session.close();
+    });
+}
+
 exports.getGraph = getGraph;
+exports.getFamily = getFamily;
+exports.checkFamily = checkFamily;
+exports.addFamilyMember = addFamilyMember;
