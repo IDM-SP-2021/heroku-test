@@ -13,7 +13,28 @@ $(function () {
     e.preventDefault();
     addMember();
   })
+  const reset = $('#reset button');
+  reset.on('click', () => {
+    if (confirm('Are you sure you want to reset the graph data? This cannot be undone.')) {
+      // Reset data
+      console.log('Reset data');
+      api
+        .resetData()
+        .then(() => {
+          $('.member').remove();
+          $('#graph svg').remove();
+        })
+        .then(() => {
+          renderGraph();
+          makeList();
+        })
+    } else {
+      // Do nothing
+      console.log('Do not reset data');
+    }
+  })
 });
+
 
 const renderGraph = () => {
   // var width = window.innerWidth, height = 800;
@@ -39,7 +60,7 @@ const renderGraph = () => {
       console.log(nodes);
 
       const simulation = d3.forceSimulation(nodes)
-          .force('link', d3.forceLink(links).distance(250))
+          .force('link', d3.forceLink(links).distance(250).id(d => d.id))
           .force('charge', d3.forceManyBody())
           .force('center', d3.forceCenter(width / 2, height / 2));
 
@@ -69,7 +90,7 @@ const renderGraph = () => {
 
         node.append('title')
           .text(d => {
-            return d.id;
+            return d.name;
           });
 
         simulation.on('tick', () => {
@@ -150,7 +171,7 @@ const makeList = () => {
         if (familyMembers.includes(memberName.toLowerCase()) === false) {
           memberList.append(`<li id="${listId}" class="member">${member.name}</li>`);
 
-          memberSelect.append(`<option value=${memberName.toLowerCase()}>${memberName}</option>`);
+          memberSelect.append(`<option value=${memberName}>${memberName}</option>`);
 
           familyMembers.push(memberName)
         }
@@ -159,20 +180,46 @@ const makeList = () => {
 }
 
 const addMember = () => {
-  var query = $.trim($('#new-name').val());
-  if (query !== "" && query !== undefined) {
-    console.log('Query is valid: ' + query);
+  let query = [];
+  const newName = $.trim($('#new-name').val());
+  const relation = $('#relationship').val();
+  const relationName = $('#current-members').val();
+  console.log(relationName);
+
+  if (relation == 'child') {
+    let s = relationName;
+    let r = 'Parent';
+    let t = newName;
+    let n = newName;
+
+    query.push({s, r, t, n});
+  } else {
+    let s = newName;
+    let r = relation;
+    let t = relationName;
+    let n = newName;
+
+    query.push({s, r, t, n});
+  }
+
+  console.log(query);
+
+  if (newName !== "" && newName !== undefined) {
+    console.log('newName is valid: ' + newName);
 
     api
-      .checkFamily(query)
+      .checkFamily(newName)
       .then(members => {
-        console.log(members);
         if (members.length > 0) {
           console.log('Person with that name already exists');
         } else {
           console.log('Person does not exist yet');
           api
             .addFamilyMember(query)
+            .then(() => {
+              $('.member').remove();
+              $('#graph svg').remove();
+            })
             .then(result => {
               renderGraph();
               makeList();
