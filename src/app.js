@@ -61,7 +61,7 @@ const renderGraph = () => {
 
       const simulation = d3.forceSimulation(nodes)
           .force('link', d3.forceLink(links).distance(250).id(d => d.id))
-          .force('charge', d3.forceManyBody())
+          .force('charge', d3.forceManyBody().strength(-1000))
           .force('center', d3.forceCenter(width / 2, height / 2));
 
       const link = g
