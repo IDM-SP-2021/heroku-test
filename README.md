@@ -45,16 +45,16 @@ Access the app (insert URL here)
     CREATE (Joe:Person {name:'Joe'})
     CREATE (Rob:Person {name:'Rob'})
 
-    CREATE (Jill)-[:MARRIED]->(Jack),
-    (Jill)-[:PARENT]->(Sam),
-    (Jack)-[:PARENT]->(Sam),
-    (Jack)-[:SIBLING]->(John),
-    (John)-[:MARRIED]->(Jane),
-    (John)-[:PARENT]->(Joe),
-    (John)-[:PARENT]->(Rob),
-    (Jane)-[:PARENT]->(Joe),
-    (Jane)-[:PARENT]->(Rob),
-    (Joe)-[:SIBLING]->(Rob)
+    CREATE (Jill)-[:FAMILY {relation:'Married'}]->(Jack),
+    (Jill)-[:FAMILY {relation:'Parent'}]->(Sam),
+    (Jack)-[:FAMILY {relation:'Parent'}]->(Sam),
+    (Jack)-[:FAMILY {relation:'Sibling'}]->(John),
+    (John)-[:FAMILY {relation:'Married'}]->(Jane),
+    (John)-[:FAMILY {relation:'Parent'}]->(Joe),
+    (John)-[:FAMILY {relation:'Parent'}]->(Rob),
+    (Jane)-[:FAMILY {relation:'Parent'}]->(Joe),
+    (Jane)-[:FAMILY {relation:'Parent'}]->(Rob),
+    (Joe)-[:FAMILY {relation:'Sibling'}]->(Rob)
     ```
 
    6. To check that the databse has been setup correctly run the following cypher command. This will return 7 nodes and 10 connections
