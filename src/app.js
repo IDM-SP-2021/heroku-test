@@ -44,9 +44,15 @@ const renderGraph = () => {
     .attr('width', '100%')
     .attr('height', '100%')
     .attr('pointer-events', 'all')
-    .style('cursor', 'move');
+    .style('cursor', 'move')
+    .style('font', '1.5rem sans-serif')
+    .attr('text-anchor', 'middle');
 
   const g = svg.append('g');
+  const linksGr = g.append('g')
+    .attr('id', 'graph-links');
+  const nodesGr = g.append('g')
+    .attr('id', 'graph-nodes');
 
   const x = d3.scaleLinear([0, 1], [0, 100]);
   const y = d3.scaleLinear([0, 1], [0, 100]);
@@ -64,9 +70,8 @@ const renderGraph = () => {
           .force('charge', d3.forceManyBody().strength(-1000))
           .force('center', d3.forceCenter(width / 2, height / 2));
 
-      const link = g
+      const link = linksGr
           .attr('stroke', '#999')
-          .attr('class', 'links')
         .selectAll('line')
         .data(links)
         .join('line')
@@ -74,52 +79,91 @@ const renderGraph = () => {
           .attr('stroke', '#999')
           .attr('class', 'link');
 
-      const node = g
+      const node = nodesGr
           .attr('stroke', '#fff')
           .attr('stroke-width', 1.5)
-          .attr('class', 'node')
-        .selectAll('circle')
+        .selectAll('g')
         .data(nodes)
-        .join('circle')
-          // .attr('r', 50)
-          .attr('fill', '#3BCEAC')
+        .join('g')
           .attr('cx', d => x(d[1]))
           .attr('cy', d => y(d[2]))
-          .attr('id', d => d.id)
+          .attr('class', 'node')
           .call(drag(simulation));
 
-        node.append('title')
-          .text(d => {
-            return d.name;
+
+      node.append('circle')
+        .attr('id', (d,i) => {
+          d.nodeUid = 'node-' + i;
+          console.log(d.nodeUid);
+          return d.nodeUid;
+        })
+        .attr('fill', '#3BCEAC')
+        .attr('cx', d => x(d[1]))
+        .attr('cy', d => y(d[2]))
+        // .attr('y', 0);
+
+
+      node.append('clipPath')
+          .attr('id', (d,i) => {
+            d.clipUid = 'clip-' + i;
+            console.log(d.clipUid)
+            return d.clipUid;
+          })
+        .append('use')
+          .attr('xlink:href', (d,i) => {
+            d.nodeUid = 'node-' + i;
+            console.log(d.nodeUid);
+            return d.nodeUid;
           });
 
-        simulation.on('tick', () => {
-          link
-            .attr('x1', d => d.source.x)
-            .attr('y1', d => d.source.y)
-            .attr('x2', d => d.target.x)
-            .attr('y2', d => d.target.y)
+      node.append('text')
+          .attr('clip-path', d => d.clipUid)
+          .attr('dx', d => x(d[1]))
+          .attr('dy', d => y(d[2]))
+          .attr('stroke', 'none')
+          .attr('fill', '#fff')
+        .selectAll('tspan')
+        .data(d => d.name.split(/(?=[A-Z][a-z])|\s+/g))
+        .join('tspan')
+          .attr('x', 0)
+          .attr('y', (d, i, nodes) => `${i - nodes.length / 2 + 0.8}em`)
+          .text(d => d);
 
-          node
+      node.append('title')
+        .text(d => {
+          return d.name;
+        });
+
+      simulation.on('tick', () => {
+        link
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y)
+
+        node
+          .selectAll('circle')
             .attr('cx', d => d.x)
-            .attr('cy', d => d.y)
-        });
+            .attr('cy', d => d.y);
 
-        let transform;
+        node
+          .selectAll('text')
+            .attr('dx', d => d.x)
+            .attr('dy', d => d.y);
+      });
 
-        const zoom = d3.zoom().on('zoom', e => {
-          g.attr('transform', (transform = e.transform));
-          g.style('stroke-width', 3 / Math.sqrt(transform.k));
-          node.attr('r', 50 / Math.sqrt(transform.k));
-        });
+      let transform;
 
-        return svg
-          .call(zoom)
-          .call(zoom.transform, d3.zoomIdentity)
-          // .on('pointermove', event => {
-          //   const p =
-          // })
-          .node();
+      const zoom = d3.zoom().on('zoom', e => {
+        g.attr('transform', (transform = e.transform));
+        g.style('stroke-width', 3 / Math.sqrt(transform.k));
+        node.selectAll('circle').attr('r', 50 / Math.sqrt(transform.k));
+      });
+
+      return svg
+        .call(zoom)
+        .call(zoom.transform, d3.zoomIdentity)
+        .node();
     })
 
     const drag = simulation => {
