@@ -27,7 +27,7 @@ const getGraph = () => {
       var id = res.get('id').low;
           id = id.toString();
       var name = res.get('name');
-      console.log(id + " " + name);
+      // console.log(id + " " + name);
 
       nodes.push({id, name});
     });
@@ -43,10 +43,10 @@ const getGraph = () => {
     });
 
     // * Uncomment the following to view a list of all people and connections in the database
-    console.log('Nodes:')
-    console.log(nodes);
-    console.log('Links:')
-    console.log(rels);
+    // console.log('Nodes:')
+    // console.log(nodes);
+    // console.log('Links:')
+    // console.log(rels);
 
     return {nodes, links: rels};
   })
@@ -76,8 +76,6 @@ const getFamily = () => {
 
         members.push({id, name});
       })
-
-      console.log(members);
 
       return members;
     })
@@ -160,23 +158,33 @@ const resetData = () => {
       DELETE p'
     ),
     session.run(
-      'CREATE (Jill:Person {name:$Jill}), \
-              (Jack:Person {name:$Jack}), \
-              (Sam:Person {name:$Sam}), \
-              (John:Person {name:$John}), \
-              (Jane:Person {name:$Jane}), \
-              (Joe:Person {name:$Joe}), \
-              (Rob:Person {name:$Rob}), \
+      'CREATE (Jill:Person {name:$Jill, gender:$F}), \
+              (Jack:Person {name:$Jack, gender:$M}), \
+              (Sam:Person {name:$Sam, gender:$M}), \
+              (John:Person {name:$John, gender:$M}), \
+              (Jane:Person {name:$Jane, gender:$F}), \
+              (Joe:Person {name:$Joe, gender:$M}), \
+              (Rob:Person {name:$Rob, gender:$M}), \
               (Jill)-[:FAMILY {relation:$Married}]->(Jack), \
+              (Jack)-[:FAMILY {relation:$Married}]->(Jill), \
               (Jill)-[:FAMILY {relation:$Parent}]->(Sam), \
+              (Sam)-[:FAMILY {relation:$Child}]->(Jill), \
               (Jack)-[:FAMILY {relation:$Parent}]->(Sam), \
+              (Sam)-[:FAMILY {relation:$Child}]->(Jack), \
               (Jack)-[:FAMILY {relation:$Sibling}]->(John), \
+              (John)-[:FAMILY {relation:$Sibling}]->(Jack), \
               (John)-[:FAMILY {relation:$Married}]->(Jane), \
+              (Jane)-[:FAMILY {relation:$Married}]->(John), \
               (John)-[:FAMILY {relation:$Parent}]->(Joe), \
+              (Joe)-[:FAMILY {relation:$Child}]->(John), \
               (John)-[:FAMILY {relation:$Parent}]->(Rob), \
+              (Rob)-[:FAMILY {relation:$Child}]->(John), \
               (Jane)-[:FAMILY {relation:$Parent}]->(Joe), \
+              (Joe)-[:FAMILY {relation:$Child}]->(Jane), \
               (Jane)-[:FAMILY {relation:$Parent}]->(Rob), \
-              (Joe)-[:FAMILY {relation:$Sibling}]->(Rob)',
+              (Rob)-[:FAMILY {relation:$Child}]->(Jane), \
+              (Joe)-[:FAMILY {relation:$Sibling}]->(Rob), \
+              (Rob)-[:FAMILY {relation:$Sibling}]->(Joe)',
       {
         Jill: 'Jill',
         Jack: 'Jack',
@@ -187,7 +195,10 @@ const resetData = () => {
         Rob: 'Rob',
         Married: 'Married',
         Parent: 'Parent',
-        Sibling: 'Sibling'
+        Child: 'Child',
+        Sibling: 'Sibling',
+        M: 'M',
+        F: 'F'
       }
     )
   ])
@@ -202,8 +213,74 @@ const resetData = () => {
   })
 }
 
+const getRelationships = () => {
+  var session = driver.session()
+
+  return session
+    .run(
+      'MATCH (p:Person) \
+      WITH collect(p) AS nodes \
+      UNWIND nodes AS n \
+      UNWIND nodes AS m \
+      WITH * WHERE id(n) <> id(m) \
+      MATCH path = allShortestPaths( (n)-[*..10]->(m) ) \
+      RETURN n AS start, relationships(path) AS relationship, m AS end'
+    )
+    .then(results => {
+      let dirRel = [];
+
+      results.records.forEach(res => {
+        let relPath = [];
+        const start = res.get('start').properties;
+        const sName = start.name;
+        const relationship = res.get('relationship');
+        const end = res.get('end').properties;
+        const eName = end.name;
+
+        for (i = 0; i < relationship.length; i++) {
+          relPath.push(relationship[i].properties.relation);
+          rel = relPath.join('');
+        }
+
+        let newRel = (rel == 'Child') ? 'Child'
+                   : (rel == 'Married') ? 'Married'
+                   : (rel == 'Parent') ? 'Parent'
+                   : (rel == 'Sibling') ? 'Sibling'
+                   : (rel == 'SiblingMarried' && end.gender == 'M') ? 'BroterInLaw'
+                   : (rel == 'MarriedSibling' && end.gender == 'M') ? 'BrotherInLaw'
+                   : (rel == 'MarriedSiblingMarried' && end.gender == 'M') ? 'BrotherInLaw'
+                   : (rel == 'SiblingMarried' && end.gender == 'F') ? 'SisterInLaw'
+                   : (rel == 'MarriedSibling' && end.gender == 'F') ? 'SisterInLaw'
+                   : (rel == 'MarriedSiblingMarried' && end.gender == 'F') ? 'SisterInLaw'
+                   : (rel == 'SiblingParent' && end.gender == 'M') ? 'Nephew'
+                   : (rel == 'MarriedSiblingParent' && end.gender == 'M') ? 'Nephew'
+                   : (rel == 'SiblingParent' && end.gender == 'F') ? 'Neice'
+                   : (rel == 'MarriedSiblingParent' && end.gender == 'F') ? 'Neice'
+                   : (rel == 'ChildSibling' && end.gender == 'M') ? 'Uncle'
+                   : (rel == 'ChildSiblingMarried' && end.gender == 'M') ? 'Uncle'
+                   : (rel == 'ChildSibling' && end.gender == 'F') ? 'Aunt'
+                   : (rel == 'ChildSiblingMarried' && end.gender == 'F') ? 'Aunt'
+                   : (rel == 'ChildSiblingParent') ? 'Cousin'
+                   : 'Unknown Relationship'
+
+        console.log(sName + " " + newRel + " " + eName)
+
+        dirRel.push({sName, newRel, eName})
+      })
+      console.log(dirRel)
+      return dirRel
+    })
+    .catch(error => {
+      throw error;
+    })
+    .finally(() => {
+      return session.close();
+    })
+}
+
 exports.getGraph = getGraph;
 exports.getFamily = getFamily;
 exports.checkFamily = checkFamily;
 exports.addFamilyMember = addFamilyMember;
 exports.resetData = resetData;
+exports.getRelationships = getRelationships;

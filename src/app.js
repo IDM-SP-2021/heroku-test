@@ -13,6 +13,7 @@ $(function () {
     e.preventDefault();
     addMember();
   })
+
   const reset = $('#reset button');
   reset.on('click', () => {
     if (confirm('Are you sure you want to reset the graph data? This cannot be undone.')) {
@@ -32,6 +33,13 @@ $(function () {
       // Do nothing
       console.log('Do not reset data');
     }
+  })
+
+  const makeRels = $('#make-rels button');
+  makeRels.on('click', () => {
+    console.log('Making Relationships');
+    api
+      .getRelationships();
   })
 });
 
@@ -63,8 +71,6 @@ const renderGraph = () => {
       const links = graph.links.map(d => Object.create(d));
       const nodes = graph.nodes.map(d => Object.create(d));
 
-      console.log(nodes);
-
       const simulation = d3.forceSimulation(nodes)
           .force('link', d3.forceLink(links).distance(250).id(d => d.id))
           .force('charge', d3.forceManyBody().strength(-1000))
@@ -94,7 +100,6 @@ const renderGraph = () => {
       node.append('circle')
         .attr('id', (d,i) => {
           d.nodeUid = 'node-' + i;
-          console.log(d.nodeUid);
           return d.nodeUid;
         })
         .attr('fill', '#3BCEAC')
@@ -106,13 +111,11 @@ const renderGraph = () => {
       node.append('clipPath')
           .attr('id', (d,i) => {
             d.clipUid = 'clip-' + i;
-            console.log(d.clipUid)
             return d.clipUid;
           })
         .append('use')
           .attr('xlink:href', (d,i) => {
             d.nodeUid = 'node-' + i;
-            console.log(d.nodeUid);
             return d.nodeUid;
           });
 
@@ -198,7 +201,6 @@ const makeList = () => {
 
   if ($('.member').length > 0) {
     $('.member').each(function() {
-      console.log(this.id);
       var elId = this.id;
       var memberName = elId.substring(elId.indexOf("-") + 1);
       familyMembers.push(memberName);
@@ -228,7 +230,6 @@ const addMember = () => {
   const newName = $.trim($('#new-name').val());
   const relation = $('#relationship').val();
   const relationName = $('#current-members').val();
-  console.log(relationName);
 
   if (relation == 'child') {
     let s = relationName;
