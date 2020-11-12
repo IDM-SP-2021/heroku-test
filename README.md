@@ -37,24 +37,33 @@ Access the app (insert URL here)
    5. Run the following cypher command
 
     ```cypher
-    CREATE (Jill:Person {name:'Jill'})
-    CREATE (Jack:Person {name:'Jack'})
-    CREATE (Sam:Person {name:'Sam'})
-    CREATE (John:Person {name:'John'})
-    CREATE (Jane:Person {name:'Jane'})
-    CREATE (Joe:Person {name:'Joe'})
-    CREATE (Rob:Person {name:'Rob'})
-
-    CREATE (Jill)-[:FAMILY {relation:'Married'}]->(Jack),
-    (Jill)-[:FAMILY {relation:'Parent'}]->(Sam),
-    (Jack)-[:FAMILY {relation:'Parent'}]->(Sam),
-    (Jack)-[:FAMILY {relation:'Sibling'}]->(John),
-    (John)-[:FAMILY {relation:'Married'}]->(Jane),
-    (John)-[:FAMILY {relation:'Parent'}]->(Joe),
-    (John)-[:FAMILY {relation:'Parent'}]->(Rob),
-    (Jane)-[:FAMILY {relation:'Parent'}]->(Joe),
-    (Jane)-[:FAMILY {relation:'Parent'}]->(Rob),
-    (Joe)-[:FAMILY {relation:'Sibling'}]->(Rob)
+   CREATE (Jill:Person {name: 'Jill', gender: 'F'}),
+   (Jack:Person {name: 'Jack', gender: 'M'}),
+   (Sam:Person {name: 'Sam', gender: 'M'}),
+   (John:Person {name: 'John', gender: 'M'}),
+   (Jane:Person {name: 'Jane', gender: 'F'}),
+   (Joe:Person {name: 'Joe', gender: 'M'}),
+   (Rob:Person {name: 'Rob', gender: 'M'}),
+   (Jill)-[:FAMILY {relation: 'Married'}]->(Jack),
+   (Jack)-[:FAMILY {relation: 'Married'}]->(Jill),
+   (Jill)-[:FAMILY {relation: 'Parent'}]->(Sam),
+   (Sam)-[:FAMILY {relation: 'Child'}]->(Jill),
+   (Jack)-[:FAMILY {relation: 'Parent'}]->(Sam),
+   (Sam)-[:FAMILY {relation: 'Child'}]->(Jack),
+   (Jack)-[:FAMILY {relation: 'Sibling'}]->(John),
+   (John)-[:FAMILY {relation: 'Sibling'}]->(Jack),
+   (John)-[:FAMILY {relation: 'Married'}]->(Jane),
+   (Jane)-[:FAMILY {relation: 'Married'}]->(John),
+   (John)-[:FAMILY {relation: 'Parent'}]->(Joe),
+   (Joe)-[:FAMILY {relation: 'Child'}]->(John),
+   (John)-[:FAMILY {relation: 'Parent'}]->(Rob),
+   (Rob)-[:FAMILY {relation: 'Child'}]->(John),
+   (Jane)-[:FAMILY {relation: 'Parent'}]->(Joe),
+   (Joe)-[:FAMILY {relation: 'Child'}]->(Jane),
+   (Jane)-[:FAMILY {relation: 'Parent'}]->(Rob),
+   (Rob)-[:FAMILY {relation: 'Child'}]->(Jane),
+   (Joe)-[:FAMILY {relation: 'Sibling'}]->(Rob),
+   (Rob)-[:FAMILY {relation: 'Sibling'}]->(Joe)
     ```
 
    6. To check that the databse has been setup correctly run the following cypher command. This will return 7 nodes and 10 connections
@@ -91,3 +100,17 @@ Access the app (insert URL here)
   ```bash
   npm run build
   ```
+
+## Helpful CYPHER queries
+
+Return all the shortest paths between all the nodes. This will be used to find how individuals are related to generate new relationships.
+
+   ```cypher
+   MATCH (p:Person)
+   WITH collect(p) AS nodes
+   UNWIND nodes as n
+   UNWIND nodes as m
+   WITH * WHERE id(n) <> id(m)
+   MATCH path = allShortestPaths( (n)-[*..4]-(m) )
+   RETURN path
+   ```
