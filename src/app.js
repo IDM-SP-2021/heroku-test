@@ -24,6 +24,7 @@ $(function () {
         .then(() => {
           $('.member').remove();
           $('#graph svg').remove();
+          $('#current-members option').remove();
         })
         .then(() => {
           renderGraph();
@@ -33,14 +34,47 @@ $(function () {
       // Do nothing
       console.log('Do not reset data');
     }
-  })
+  });
+
+  // const testData = $('#test-data button');
+  // testData.on('click', () => {
+  //   console.log('Generating Test Data');
+  //   api
+  //     .testData()
+  //     // .then(rels => {
+  //     //   api
+  //     //     .makeRelationships(rels);
+  //     // })
+  //     // .then(() => {
+  //     //   $('.member').remove();
+  //     //   $('#graph svg').remove();
+  //     //   $('#current-members option').remove();
+  //     // })
+  //     // .then(() => {
+  //     //   renderGraph();
+  //     //   makeList();
+  //     // });
+  // });
 
   const makeRels = $('#make-rels button');
   makeRels.on('click', () => {
     console.log('Making Relationships');
     api
-      .getRelationships();
-  })
+      .getRelationships()
+      .then(rels => {
+        api
+          .makeRelationships(rels);
+      })
+      .then(() => {
+        $('.member').remove();
+        $('#graph svg').remove();
+        $('#current-members option').remove();
+      })
+      .then(() => {
+        renderGraph();
+        makeList();
+      });
+  });
 });
 
 
@@ -83,7 +117,7 @@ const renderGraph = () => {
         .join('line')
           .attr('stroke-width', '3')
           .attr('stroke', '#999')
-          .attr('class', 'link');
+          .attr('class', d => d.relType);
 
       const node = nodesGr
           .attr('stroke', '#fff')
@@ -136,6 +170,11 @@ const renderGraph = () => {
         .text(d => {
           return d.name;
         });
+
+      link.append('title')
+        .text(d => {
+          return `${d.source.name} is ${d.relType} to ${d.target.name}`
+        })
 
       simulation.on('tick', () => {
         link
@@ -231,20 +270,32 @@ const addMember = () => {
   const relation = $('#relationship').val();
   const relationName = $('#current-members').val();
 
-  if (relation == 'child') {
+  console.log(relation);
+
+  if (relation == 'Child') {
     let s = relationName;
     let r = 'Parent';
+    let rev = 'Child'
     let t = newName;
     let n = newName;
 
-    query.push({s, r, t, n});
-  } else {
+    query.push({s, r, rev, t, n});
+  } else if (relation == 'Parent') {
     let s = newName;
     let r = relation;
+    let rev = 'Child'
     let t = relationName;
     let n = newName;
 
-    query.push({s, r, t, n});
+    query.push({s, r, rev, t, n});
+  } else if (relation == 'Sibling') {
+    let s = newName;
+    let r = relation;
+    let rev = relation;
+    let t = relationName;
+    let n = newName;
+
+    query.push({s, r, rev, t, n});
   }
 
   console.log(query);
@@ -264,6 +315,7 @@ const addMember = () => {
             .then(() => {
               $('.member').remove();
               $('#graph svg').remove();
+              $('#current-members option').remove();
             })
             .then(result => {
               renderGraph();

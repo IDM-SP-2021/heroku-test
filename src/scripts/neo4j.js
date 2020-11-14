@@ -1,13 +1,13 @@
-var neo4j = require('neo4j-driver').v1
+const neo4j = require('neo4j-driver').v1
 
 const neo4jHost = process.env.N4J_HOST;
 const neo4jUser = process.env.N4J_USER;
 const neo4jPass = process.env.N4J_PASS
-var driver = neo4j.driver(neo4jHost, neo4j.auth.basic(neo4jUser, neo4jPass));
+let driver = neo4j.driver(neo4jHost, neo4j.auth.basic(neo4jUser, neo4jPass));
 
 // Return all Person nodes and connections
 const getGraph = () => {
-  var session = driver.session();
+  let session = driver.session();
 
   return Promise.all([
     session.run(
@@ -16,17 +16,17 @@ const getGraph = () => {
     ),
     session.run(
       'MATCH (s:Person)-[r]->(t:Person) \
-      RETURN ID(s) AS src_id, ID(t) AS tar_id, type(r) AS rel_type'
+      RETURN ID(s) AS src_id, ID(t) AS tar_id, r.relation AS rel_type'
     )
   ])
   .then(results => {
-    var nodes = [], rels = [], i = 0;
+    let nodes = [], rels = [], i = 0;
 
     // Gather names and push them to nodes array
     results[0].records.forEach(res => {
-      var id = res.get('id').low;
+      let id = res.get('id').low;
           id = id.toString();
-      var name = res.get('name');
+      let name = res.get('name');
       // console.log(id + " " + name);
 
       nodes.push({id, name});
@@ -34,12 +34,13 @@ const getGraph = () => {
 
     // Gather relationship links and push them to rels array
     results[1].records.forEach(res => {
-      var source = res.get('src_id').low;
+      let source = res.get('src_id').low;
           source = source.toString();
-      var target = res.get('tar_id').low;
+      let target = res.get('tar_id').low;
           target = target.toString();
+      let relType = res.get('rel_type')
 
-      rels.push({source, target});
+      rels.push({source, target, relType});
     });
 
     // * Uncomment the following to view a list of all people and connections in the database
@@ -60,7 +61,7 @@ const getGraph = () => {
 
 // Return a list of all family members
 const getFamily = () => {
-  var session = driver.session();
+  let session = driver.session();
 
   return session
     .run(
@@ -89,7 +90,7 @@ const getFamily = () => {
 
 // Check if node exists in database
 const checkFamily = (queryString) => {
-  var session = driver.session();
+  let session = driver.session();
 
   return session
     .run(
@@ -112,10 +113,11 @@ const checkFamily = (queryString) => {
 }
 
 const addFamilyMember = (queryString) => {
-  const session = driver.session();
+  let session = driver.session();
 
   let s = queryString[0].s;
   let r = queryString[0].r;
+  let rev = queryString[0].rev;
   let t = queryString[0].t;
   let n = queryString[0].n;
 
@@ -130,9 +132,10 @@ const addFamilyMember = (queryString) => {
        WITH n \
        MATCH (s:Person {name:$s}), \
              (t:Person {name:$t}) \
-       CREATE (s)-[rel:FAMILY {relation:$r}]->(t) \
-       RETURN s.name AS sName, rel.relation AS relation, t.name AS tName',
-       {n:n, s:s, r:r, t:t}
+       CREATE (s)-[rel:FAMILY {relation:$r}]->(t), \
+              (t)-[revRel:FAMILY {relation:$rev}]->(s) \
+       RETURN s.name AS sName, rel.relation AS relation, revRel.relation AS revRelation, t.name AS tName',
+       {n:n, s:s, r:r, rev:rev, t:t}
     )
     .then(result => {
       console.log(result);
@@ -146,7 +149,7 @@ const addFamilyMember = (queryString) => {
 }
 
 const resetData = () => {
-  var session = driver.session()
+  let session = driver.session()
 
   return Promise.all([
     session.run(
@@ -213,8 +216,21 @@ const resetData = () => {
   })
 }
 
+// const testData = () => {
+//   console.log('test data')
+//   let data = []
+//   getFamily()
+//   .then(family => {
+//     family.forEach(member => {
+//       let mName = member.name;
+//       let pName = Math.floor(Math.random() * 1000) + 1;
+//     })
+//   });
+// }
+
+// Finds all family member nodes in graph, maps the shortest path between them, then converts the rel path to a direct relationship type
 const getRelationships = () => {
-  var session = driver.session()
+  let session = driver.session()
 
   return session
     .run(
@@ -242,6 +258,9 @@ const getRelationships = () => {
           rel = relPath.join('');
         }
 
+
+
+        // Convert rel path to direct relationship. Unknown path variants return Unknown Relationship
         let newRel = (rel == 'Child') ? 'Child'
                    : (rel == 'Married') ? 'Married'
                    : (rel == 'Parent') ? 'Parent'
@@ -263,10 +282,9 @@ const getRelationships = () => {
                    : (rel == 'ChildSiblingParent') ? 'Cousin'
                    : 'Unknown Relationship'
 
-        console.log(sName + " " + newRel + " " + eName)
-
         dirRel.push({sName, newRel, eName})
       })
+      console.log(`${sName} ${rel} ${eName}`);
       console.log(dirRel)
       return dirRel
     })
@@ -278,9 +296,49 @@ const getRelationships = () => {
     })
 }
 
+// Take relationships from getRelationships and create database relationships
+const makeRelationships = (rels) => {
+  let session = driver.session();
+  console.log(rels)
+
+  return rels.forEach(rel => {
+    let start = rel.sName;
+    let relation = rel.newRel;
+    let end = rel.eName
+
+    // Uncomment the following to see what relationships are being added
+    console.log(`${start} ${relation} ${end}`)
+
+    session.run(
+      'MATCH (s:Person {name:$start}), (t:Person {name:$end}) \
+      MERGE (s)-[:FAMILY {relation:$relation}]->(t) \
+      RETURN s.name AS sName, t.name AS tName',
+      {
+        start:start,
+        end:end,
+        relation:relation
+      }
+    )
+    .then(results => {
+      results.records.forEach(res => {
+        let sName = res.get('sName');
+        let tName = res.get('tName');
+      })
+    })
+    .catch(error => {
+      throw error;
+    })
+    .finally(() => {
+      return session.close();
+    })
+  })
+}
+
 exports.getGraph = getGraph;
 exports.getFamily = getFamily;
 exports.checkFamily = checkFamily;
 exports.addFamilyMember = addFamilyMember;
 exports.resetData = resetData;
+exports.testData = testData;
 exports.getRelationships = getRelationships;
+exports.makeRelationships = makeRelationships;
