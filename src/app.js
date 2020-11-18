@@ -11,7 +11,12 @@ $(function () {
 
   $('#add-member').on('submit', (e) => {
     e.preventDefault();
-    addMember();
+    const m = $('#current-members').val();
+    const r = $('#relationship').val();
+    const n = $.trim($('#new-name').val());
+    const g = $('#gender').val();
+
+    addMember(m, r, n, g);
   })
 
   const reset = $('#reset button');
@@ -36,34 +41,83 @@ $(function () {
     }
   });
 
-  // const testData = $('#test-data button');
-  // testData.on('click', () => {
-  //   console.log('Generating Test Data');
-  //   api
-  //     .testData()
-  //     // .then(rels => {
-  //     //   api
-  //     //     .makeRelationships(rels);
-  //     // })
-  //     // .then(() => {
-  //     //   $('.member').remove();
-  //     //   $('#graph svg').remove();
-  //     //   $('#current-members option').remove();
-  //     // })
-  //     // .then(() => {
-  //     //   renderGraph();
-  //     //   makeList();
-  //     // });
-  // });
+  const testData = $('#test-data button');
+  testData.on('click', () => {
+    console.log('Generating Test Data');
+    // getFamily()
+    // .then(family => {
+    // family.forEach(member => {
+    //   console.log(member)
+    //   setTimeout(function() {
+    //     let m = member.name;
+    //     let sp = Math.floor(Math.random() * 1000000) + 1;
+    //     let p = Math.floor(Math.random() * 1000000) + 1;
+    //     let c = Math.floor(Math.random() * 1000000) + 1;
+    //     let s = Math.floor(Math.random() * 1000000) + 1;
+    //     let g = Math.floor(Math.random() * 2) + 1;
+    //     let gen = (g == 1) ? 'M'
+    //             : (g == 2) ? 'F'
+    //             : 'Undefined'
+    //   }, 200)
+    // }
+
+    api
+      .getFamily()
+      .then(family => {
+        family.forEach(member => {
+          console.log(member);
+          let newMems = [];
+          const genOpt = ['M', 'F', 'X']
+          const m = member;
+          let sp = {
+            name: '' + Math.floor(Math.random() * 1000000) + 1,
+            gender: genOpt[Math.floor(Math.random() * 3)],
+            relationship: 'SpouseTo'
+          }
+          let p = {
+            name: '' + Math.floor(Math.random() * 1000000) + 1,
+            gender: genOpt[Math.floor(Math.random() * 3)],
+            relationship: 'ParentTo'
+          }
+          let c = {
+            name: '' + Math.floor(Math.random() * 1000000) + 1,
+            gender: genOpt[Math.floor(Math.random() * 3)],
+            relationship: 'ChildTo'
+          }
+          let s = {
+            name: '' + Math.floor(Math.random() * 1000000) + 1,
+            gender: genOpt[Math.floor(Math.random() * 3)],
+            relationship: 'SiblingTo'
+          }
+
+          // console.log(`Member: ${member.name} | Spouse: ${sp.name} | Parent: ${p.name} | Child: ${c.name} | Sibling: ${s.name}`);
+
+          newMems.push(sp, p, c, s);
+          console.log(newMems)
+          newMems.forEach(mem => {
+            console.log(`m: ${member.name} | r: ${mem.relationship} | n: ${mem.name} | g: ${mem.gender}`)
+            addMember(member.name, mem.relationship, mem.name, mem.gender);
+          })
+        })
+      })
+  });
 
   const makeRels = $('#make-rels button');
   makeRels.on('click', () => {
     console.log('Making Relationships');
+    let basicRels = [];
     api
       .getRelationships()
       .then(rels => {
+        rels.forEach(rel => {
+          // console.log(rel.newRel)
+          if (rel.newRel.match(/^(SpouseTo|SiblingTo|ChildTo|ParentTo)$/)) {
+            basicRels.push(rel);
+          }
+        })
+        console.log(basicRels);
         api
-          .makeRelationships(rels);
+          .makeRelationships(basicRels);
       })
       .then(() => {
         $('.member').remove();
@@ -74,6 +128,7 @@ $(function () {
         renderGraph();
         makeList();
       });
+      setTimeout(function() { console.log(basicRels) }, 10000)
   });
 });
 
@@ -160,7 +215,8 @@ const renderGraph = () => {
           .attr('stroke', 'none')
           .attr('fill', '#fff')
         .selectAll('tspan')
-        .data(d => d.name.split(/(?=[A-Z][a-z])|\s+/g))
+        .data(d => d.name)
+        // .data(d => d.name.split(/(?=[A-Z][a-z])|\s+/g))
         .join('tspan')
           .attr('x', 0)
           .attr('y', (d, i, nodes) => `${i - nodes.length / 2 + 0.8}em`)
@@ -250,80 +306,69 @@ const makeList = () => {
     .getFamily()
     .then(family => {
       family.forEach(member => {
+        console.log('Making List')
+        console.log(member)
         var memberName = member.name;
-        var listId = `member-${memberName.toLowerCase()}`
+        console.log(memberName)
+        var listId = `member-${memberName}`
 
-        if (familyMembers.includes(memberName.toLowerCase()) === false) {
+        if (familyMembers.includes(memberName) == false) {
           memberList.append(`<li id="${listId}" class="member">${member.name}</li>`);
 
           memberSelect.append(`<option value=${memberName}>${memberName}</option>`);
 
           familyMembers.push(memberName)
+        } else {
+          console.log('Name in list')
         }
       });
     })
 }
 
-const addMember = () => {
+
+const addMember = (m, r, n, g) => {
   let query = [];
-  const newName = $.trim($('#new-name').val());
-  const relation = $('#relationship').val();
-  const relationName = $('#current-members').val();
+  const src = n;
+  const rel = r;
+  let rev = (rel == 'ChildTo') ? 'ParentTo'
+            : (rel == 'ParentTo') ? 'ChildTo'
+            : (rel == 'SiblingTo') ? 'SiblingTo'
+            : (rel == 'SpouseTo') ? 'SpouseTo'
+            : 'Unknown';
+  const tar = m;
+  const gen = g;
 
-  console.log(relation);
-
-  if (relation == 'Child') {
-    let s = relationName;
-    let r = 'Parent';
-    let rev = 'Child'
-    let t = newName;
-    let n = newName;
-
-    query.push({s, r, rev, t, n});
-  } else if (relation == 'Parent') {
-    let s = newName;
-    let r = relation;
-    let rev = 'Child'
-    let t = relationName;
-    let n = newName;
-
-    query.push({s, r, rev, t, n});
-  } else if (relation == 'Sibling') {
-    let s = newName;
-    let r = relation;
-    let rev = relation;
-    let t = relationName;
-    let n = newName;
-
-    query.push({s, r, rev, t, n});
-  }
+  query.push(src, rel, rev, tar, gen);
 
   console.log(query);
 
-  if (newName !== "" && newName !== undefined) {
-    console.log('newName is valid: ' + newName);
-
-    api
-      .checkFamily(newName)
-      .then(members => {
-        if (members.length > 0) {
-          console.log('Person with that name already exists');
-        } else {
-          console.log('Person does not exist yet');
-          api
-            .addFamilyMember(query)
-            .then(() => {
-              $('.member').remove();
-              $('#graph svg').remove();
-              $('#current-members option').remove();
-            })
-            .then(result => {
-              renderGraph();
-              makeList();
-            });
-        }
-      })
-  } else {
-    console.log('Query is invalid');
+  if (src !== "" && src !== undefined) {
+    console.log(`Valid name submitted. Creating person ${src} who is ${gen}. ${src} is ${r} ${tar} and ${tar} is ${rev} ${src}.`)
   }
+  // if (newName !== "" && newName !== undefined) {
+  //   console.log('newName is valid: ' + newName);
+
+  //   api
+  //     .checkFamily(newName)
+  //     .then(members => {
+  //       if (members.length > 0) {
+  //         console.log('Person with that name already exists');
+  //       } else {
+  //         console.log('Person does not exist yet');
+  //         api
+  //           .addFamilyMember(query)
+  //           .then(() => {
+  //             $('.member').remove();
+  //             $('#graph svg').remove();
+  //             $('#current-members option').remove();
+  //           })
+  //           .then(result => {
+  //             renderGraph();
+  //             makeList();
+  //           });
+  //       }
+  //     })
+  // } else {
+  //   console.log('Query is invalid');
+  // }
 }

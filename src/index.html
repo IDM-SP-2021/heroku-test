@@ -27,11 +27,19 @@
           <input type="text" name="new-name" id="new-name" required>
         </div>
         <div class="form-control">
+          <label for="gender">Gender of new member:</label>
+          <select name="gender" id="gender">
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+            <option value="X">Non-Binary</option>
+          </select>
+        </div>
+        <div class="form-control">
           <label for="relationship">Relationship to a current family member:</label>
           <select name="relationship" id="relationship">
-            <option value="Child">Child of</option>
-            <option value="Parent">Parent of</option>
-            <option value="Sibling">Sibling of</option>
+            <option value="ChildTo">Child to</option>
+            <option value="ParentTo">Parent to</option>
+            <option value="SiblingTo">Sibling to</option>
           </select>
         </div>
         <div class="form-control">
@@ -50,7 +58,7 @@
 
     <div id="dev-buttons">
       <div id="reset"><button>Reset Data</button></div>
-      <!-- <div id="test-data"><button>Generate Test Data</button></div> -->
+      <div id="test-data"><button>Generate Test Data</button></div>
       <div id="make-rels"><button>Make Relationships</button></div>
     </div>
   </main>
