@@ -103,7 +103,7 @@ $(function () {
 
         })
         console.log(newRels.length);
-        newRels.forEach((i, idx, array) => {
+        newRels.slice(0,50).forEach((i, idx, array) => {
           merge += `MERGE (${i.name})-[:FAMILY {relation:'${i.relationship}'}]->(${i.target}) MERGE (${i.name})<-[:FAMILY {relation:'${i.relReverse}'}]-(${i.target}) `
           if (idx === array.length - 1){
             create += `(${i.name}:Person {name:'${i.name}', gender:'${i.gender}'}) `
