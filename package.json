@@ -30,6 +30,7 @@
     "d3-zoom": "^2.0.0",
     "express": "^4.17.1",
     "jquery": "^3.5.1",
+    "nanoid": "^3.1.16",
     "neo4j-driver": "^1.7.7"
   },
   "devDependencies": {
