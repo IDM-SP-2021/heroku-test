@@ -2,6 +2,9 @@ import { makeArray } from 'jquery';
 import './css/styles.css';
 var $ = require('jquery');
 const d3 = require('d3');
+import { customAlphabet } from 'nanoid'
+
+const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
 
 var api = require('./scripts/neo4j')
 
@@ -41,64 +44,87 @@ $(function () {
     }
   });
 
+  function getRandomString(length) {
+    var randomChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy';
+    var result = '';
+    for ( var i = 0; i < length; i++ ) {
+        result += randomChars.charAt(Math.floor(Math.random() * randomChars.length));
+    }
+    return result;
+}
+
   const testData = $('#test-data button');
   testData.on('click', () => {
     console.log('Generating Test Data');
-    // getFamily()
-    // .then(family => {
-    // family.forEach(member => {
-    //   console.log(member)
-    //   setTimeout(function() {
-    //     let m = member.name;
-    //     let sp = Math.floor(Math.random() * 1000000) + 1;
-    //     let p = Math.floor(Math.random() * 1000000) + 1;
-    //     let c = Math.floor(Math.random() * 1000000) + 1;
-    //     let s = Math.floor(Math.random() * 1000000) + 1;
-    //     let g = Math.floor(Math.random() * 2) + 1;
-    //     let gen = (g == 1) ? 'M'
-    //             : (g == 2) ? 'F'
-    //             : 'Undefined'
-    //   }, 200)
-    // }
 
     api
       .getFamily()
       .then(family => {
-        family.forEach(member => {
-          console.log(member);
-          let newMems = [];
+        let newRels = [];
+        let match = ''
+        let create = 'CREATE '
+        let merge = ''
+        // let mergeR = ''
+        family.forEach((i, idx, array) => {
           const genOpt = ['M', 'F', 'X']
-          const m = member;
+          const m = i;
           let sp = {
-            name: '' + Math.floor(Math.random() * 1000000) + 1,
+            name: nanoid(),
             gender: genOpt[Math.floor(Math.random() * 3)],
-            relationship: 'SpouseTo'
+            relationship: 'SpouseTo',
+            relReverse: 'SposueTo',
+            target: m.name
           }
           let p = {
-            name: '' + Math.floor(Math.random() * 1000000) + 1,
+            name: nanoid(),
             gender: genOpt[Math.floor(Math.random() * 3)],
-            relationship: 'ParentTo'
+            relationship: 'ParentTo',
+            relReverse: 'ChildTo',
+            target: m.name
           }
           let c = {
-            name: '' + Math.floor(Math.random() * 1000000) + 1,
+            name: nanoid(),
             gender: genOpt[Math.floor(Math.random() * 3)],
-            relationship: 'ChildTo'
+            relationship: 'ChildTo',
+            relReverse: 'ParentTo',
+            target: m.name
           }
           let s = {
-            name: '' + Math.floor(Math.random() * 1000000) + 1,
+            name: nanoid(),
             gender: genOpt[Math.floor(Math.random() * 3)],
-            relationship: 'SiblingTo'
+            relationship: 'SiblingTo',
+            relReverse: 'SiblingTo',
+            target: m.name
           }
 
-          // console.log(`Member: ${member.name} | Spouse: ${sp.name} | Parent: ${p.name} | Child: ${c.name} | Sibling: ${s.name}`);
+          newRels.push(sp, p, c, s);
 
-          newMems.push(sp, p, c, s);
-          console.log(newMems)
-          newMems.forEach(mem => {
-            console.log(`m: ${member.name} | r: ${mem.relationship} | n: ${mem.name} | g: ${mem.gender}`)
-            addMember(member.name, mem.relationship, mem.name, mem.gender);
-          })
+          match += `MATCH (${m.name}:Person) WHERE ID(${m.name})= ${m.id} `
+
         })
+        console.log(newRels.length);
+        newRels.forEach((i, idx, array) => {
+          merge += `MERGE (${i.name})-[:FAMILY {relation:'${i.relationship}'}]->(${i.target}) MERGE (${i.name})<-[:FAMILY {relation:'${i.relReverse}'}]-(${i.target}) `
+          if (idx === array.length - 1){
+            create += `(${i.name}:Person {name:'${i.name}', gender:'${i.gender}'}) `
+          } else {
+            create += `(${i.name}:Person {name:'${i.name}', gender:'${i.gender}'}), `
+          }
+        })
+        let query = match + create + merge + 'RETURN *';
+        console.log(query);
+        api
+          .testData(query)
+          .then(() => {
+            console.log('Test Data Generated')
+            $('.member').remove();
+            $('#graph svg').remove();
+            $('#current-members option').remove();
+          })
+          .finally(() => {
+            renderGraph();
+            makeList();
+          });
       })
   });
 
@@ -111,24 +137,28 @@ $(function () {
       .then(rels => {
         rels.forEach(rel => {
           // console.log(rel.newRel)
-          if (rel.newRel.match(/^(SpouseTo|SiblingTo|ChildTo|ParentTo)$/)) {
-            basicRels.push(rel);
-          }
+          // if (rel.newRel.match(/^(SpouseTo|SiblingTo|ChildTo|ParentTo)$/)) {
+          //   basicRels.push(rel);
+          // }
         })
-        console.log(basicRels);
-        api
-          .makeRelationships(basicRels);
+        // console.log(basicRels);
+        // console.log(basicRels.slice(0,100))
+        // basicRels.slice(0,100).forEach(rel => {
+        //   api
+        //     .makeRelationships
+        // })
+        // api
+        //   .makeRelationships(basicRels.slice(0,100));
       })
-      .then(() => {
-        $('.member').remove();
-        $('#graph svg').remove();
-        $('#current-members option').remove();
-      })
-      .then(() => {
-        renderGraph();
-        makeList();
-      });
-      setTimeout(function() { console.log(basicRels) }, 10000)
+      // .then(() => {
+      //   $('.member').remove();
+      //   $('#graph svg').remove();
+      //   $('#current-members option').remove();
+      // })
+      // .then(() => {
+      //   renderGraph();
+      //   makeList();
+      // });
   });
 });
 
@@ -216,7 +246,7 @@ const renderGraph = () => {
           .attr('fill', '#fff')
         .selectAll('tspan')
         .data(d => d.name)
-        // .data(d => d.name.split(/(?=[A-Z][a-z])|\s+/g))
+        .data(d => d.name.split(/(?=[A-Z][a-z])|\s+/g))
         .join('tspan')
           .attr('x', 0)
           .attr('y', (d, i, nodes) => `${i - nodes.length / 2 + 0.8}em`)
@@ -344,6 +374,8 @@ const addMember = (m, r, n, g) => {
 
   if (src !== "" && src !== undefined) {
     console.log(`Valid name submitted. Creating person ${src} who is ${gen}. ${src} is ${r} ${tar} and ${tar} is ${rev} ${src}.`)
+    api
+      .addFamilyMember(query)
   }
   // if (newName !== "" && newName !== undefined) {
   //   console.log('newName is valid: ' + newName);

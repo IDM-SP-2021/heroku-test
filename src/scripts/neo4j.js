@@ -66,18 +66,19 @@ const getFamily = () => {
   return session
     .run(
       'MATCH (p:Person)\
-      RETURN ID(p) AS id, p.name AS name'
+      RETURN p'
     )
     .then(results => {
       var members = [];
 
       results.records.forEach(res => {
-        var id = res.get('id').low;
-        var name = res.get('name');
+        const member = res.get('p');
+        const id = member.identity.low;
+        const name = member.properties.name;
+        const gender = member.properties.gender
 
-        members.push({id, name});
+        members.push({id, name, gender});
       })
-
       return members;
     })
     .catch(error => {
@@ -115,30 +116,30 @@ const checkFamily = (queryString) => {
 const addFamilyMember = (queryString) => {
   let session = driver.session();
 
-  let s = queryString[0].s;
-  let r = queryString[0].r;
-  let rev = queryString[0].rev;
-  let t = queryString[0].t;
-  let n = queryString[0].n;
+  let s = queryString[0];
+  let r = queryString[1];
+  let rev = queryString[2];
+  let t = queryString[3];
+  let g = queryString[4];
 
-  console.log(`${queryString}`);
+  console.log(queryString);
   console.log(`Source: ${s}`);
   console.log(`Relationship: ${r}`);
   console.log(`Target: ${t}`);
 
   return session
     .run(
-      'CREATE (n:Person {name:$n}) \
+      'MERGE (n:Person {name:$s, gender:$g}) \
        WITH n \
        MATCH (s:Person {name:$s}), \
              (t:Person {name:$t}) \
        CREATE (s)-[rel:FAMILY {relation:$r}]->(t), \
               (t)-[revRel:FAMILY {relation:$rev}]->(s) \
        RETURN s.name AS sName, rel.relation AS relation, revRel.relation AS revRelation, t.name AS tName',
-       {n:n, s:s, r:r, rev:rev, t:t}
+       {s:s, g:g, r:r, rev:rev, t:t}
     )
     .then(result => {
-      console.log(result);
+      console.log(result.records);
     })
     .catch(error => {
       throw error;
@@ -196,10 +197,10 @@ const resetData = () => {
         Jane: 'Jane',
         Joe: 'Joe',
         Rob: 'Rob',
-        Married: 'Married',
-        Parent: 'Parent',
-        Child: 'Child',
-        Sibling: 'Sibling',
+        Married: 'SpouseTo',
+        Parent: 'ParentTo',
+        Child: 'ChildTo',
+        Sibling: 'SiblingTo',
         M: 'M',
         F: 'F'
       }
@@ -216,17 +217,22 @@ const resetData = () => {
   })
 }
 
-// const testData = () => {
-//   console.log('test data')
-//   let data = []
-//   getFamily()
-//   .then(family => {
-//     family.forEach(member => {
-//       let mName = member.name;
-//       let pName = Math.floor(Math.random() * 1000) + 1;
-//     })
-//   });
-// }
+const testData = (query) => {
+  let data = []
+  let session = driver.session();
+  console.log('Started query')
+  return session
+    .run(query)
+    .then(results => {
+      console.log(results.records)
+    })
+    .catch(error => {
+      throw error;
+    })
+    .finally(() => {
+      return session.close();
+    })
+};
 
 // Finds all family member nodes in graph, maps the shortest path between them, then converts the rel path to a direct relationship type
 const getRelationships = () => {
@@ -244,6 +250,7 @@ const getRelationships = () => {
     )
     .then(results => {
       let dirRel = [];
+      let unknowns = [];
 
       results.records.forEach(res => {
         let relPath = [];
@@ -258,34 +265,126 @@ const getRelationships = () => {
           rel = relPath.join('');
         }
 
+        // Convert rel path to direct relationship. All relationships are written in Source to Target format. Unknown path variants return Unknown Relationship
+        let newRel =
+            (rel == 'ChildTo') ||
+            (rel == 'SiblingToChildTo') ||
+            (rel == 'SiblingToSiblingToChildTo')
+              ? 'ChildTo' //Source is Son, Daughter, or Child to End
 
+          : (rel == 'SpouseTo') ||
+            (rel == 'ParentToChildTo') ||
+            (rel == 'ParentToSiblingToChildTo')
+              ? 'SpouseTo' // Source is Husband, Wife, or Spouse to End
 
-        // Convert rel path to direct relationship. Unknown path variants return Unknown Relationship
-        let newRel = (rel == 'Child') ? 'Child'
-                   : (rel == 'Married') ? 'Married'
-                   : (rel == 'Parent') ? 'Parent'
-                   : (rel == 'Sibling') ? 'Sibling'
-                   : (rel == 'SiblingMarried' && end.gender == 'M') ? 'BroterInLaw'
-                   : (rel == 'MarriedSibling' && end.gender == 'M') ? 'BrotherInLaw'
-                   : (rel == 'MarriedSiblingMarried' && end.gender == 'M') ? 'BrotherInLaw'
-                   : (rel == 'SiblingMarried' && end.gender == 'F') ? 'SisterInLaw'
-                   : (rel == 'MarriedSibling' && end.gender == 'F') ? 'SisterInLaw'
-                   : (rel == 'MarriedSiblingMarried' && end.gender == 'F') ? 'SisterInLaw'
-                   : (rel == 'SiblingParent' && end.gender == 'M') ? 'Nephew'
-                   : (rel == 'MarriedSiblingParent' && end.gender == 'M') ? 'Nephew'
-                   : (rel == 'SiblingParent' && end.gender == 'F') ? 'Neice'
-                   : (rel == 'MarriedSiblingParent' && end.gender == 'F') ? 'Neice'
-                   : (rel == 'ChildSibling' && end.gender == 'M') ? 'Uncle'
-                   : (rel == 'ChildSiblingMarried' && end.gender == 'M') ? 'Uncle'
-                   : (rel == 'ChildSibling' && end.gender == 'F') ? 'Aunt'
-                   : (rel == 'ChildSiblingMarried' && end.gender == 'F') ? 'Aunt'
-                   : (rel == 'ChildSiblingParent') ? 'Cousin'
-                   : 'Unknown Relationship'
+          : (rel == 'ParentTo') ||
+            (rel == 'ParentToSiblingTo') ||
+            (rel == 'ParentToSiblingToSiblingTo') ||
+            (rel == 'SpouseToParentTo')
+              ? 'ParentTo' // Mother, Father, or Parent To End
 
+          : (rel == 'SiblingToChildToChildTo') ||
+            (rel == 'SiblingToChildToSiblingToChildTo')
+              ? 'GrandchildTo' // Source is Grandson, Granddaughter, or Grandchild to End
+
+          : (rel == 'ParentToParentTo') ||
+            (rel == 'ParentToSpouseToParentTo') ||
+            (rel == 'ParentToParentToSiblingTo') ||
+            (rel == 'ParentToSiblingToParentToSiblingTo') ||
+            (rel == 'ParentToSiblingToParentTo') ||
+            (rel == 'ParentToSiblingToSpouseToParentTo')
+              ? 'GrandparentTo' // Source is Grandfather, Grandmother, or Grandparent to End
+
+          : (rel == 'ParentToParentToParentTo') ||
+            (rel == 'ParentToSiblingToParentToParentTo')
+              ? 'GreatGrandparentTo' // Source is Great Grandfather, Great Grandmother, or Great Grandparent to End
+
+          : (rel == 'SiblingTo') ||
+            (rel == 'SiblingToSiblingTo') ||
+            (rel == 'SiblingToSiblingToSiblingTo') ||
+            (rel == 'SiblingToChildToParentTo')
+              ? 'SiblingTo' // Source is Brother, Sister, or Sibling to End
+
+          : (rel == 'SpouseToChildTo')
+              ? 'ChildInLawTo' // Source is Son-in-Law, Daughter-in-Law, or Child-in-Law to End
+
+          : (rel == 'ParentToSpouseToChildTo') ||
+            (rel == 'ParentToSiblingToSpouseToChildTo')
+              ? 'ChildParentInLawTo' // Source is the Parent-in-Law to End's Child
+
+          : (rel == 'SiblingToSpouseTo') ||
+            (rel == 'SpouseToSiblingTo') ||
+            (rel == 'SpouseToSiblingToSiblingTo') ||
+            (rel == 'SpouseToSiblingToSpouseTo') ||
+            (rel == 'SpouseToSiblingToParentToChildTo')
+              ? 'SiblingInLawTo' // Source is Brother-in-Law, Sister-in-Law, or Sibling-in-Law to End
+
+          : (rel == 'SpouseToSiblingToSpouseToSiblingTo')
+              ? 'SiblingInLawSiblingTo' // Source is Brother-in-Law's Sibling, Sister-in-Law's Sibling, or Sibling-in-Law's Sibling To End
+
+          : (rel == 'SpouseToSiblingToSpouseToChildTo') ||
+            (rel == 'SiblingToSpouseToChildTo')
+              ? 'SiblingInLawParentTo' // Source is Brother-in-Law's Parent, Sister-in-Law's Parent, or Sibling-in-Law's Parent To End
+
+          : (rel == 'ParentToSpouseTo') ||
+            (rel == 'ParentToSpouseToSpouseTo') ||
+            (rel == 'ParentToSiblingToParentToChildTo') ||
+            (rel == 'ParentToSiblingToSpouseTo')
+              ? 'ParentInLawTo' // Source is Father-in-Law, Mother-in-Law, or Parent-in-Law to End
+
+          : (rel == 'ParentToSpouseToSiblingTo') ||
+            (rel == 'ParentToSiblingToSpouseToSiblingTo')
+              ? 'SiblingParentInLawTo' // Source is Parent-in-Law to End's Sibling
+
+          : (rel == 'ParentToParentToSpouseTo') ||
+            (rel == 'ParentToParentToChildTo') ||
+            (rel == 'ParentToSiblingToParentToSpouseTo')
+              ? 'GrandparentInLawTo' // Source is Grandfather-in-Law, Grandmother-in-Law, or Grandparent-in-Law to End (End's Spouse's Grandparent)
+
+          : (rel == 'SiblingToParentTo') ||
+            (rel == 'SiblingToSpouseToParentTo') ||
+            (rel == 'SiblingToSiblingToParentTo') ||
+            (rel == 'SpouseToSiblingToParentTo') ||
+            (rel == 'SpouseToSiblingToSpouseToParentTo') ||
+            (rel == 'SpouseToSiblingToParentToSiblingTo')
+              ? 'ParsibTo' // Source is Uncle, Aunt, or Parent's Sibling To End
+
+          : (rel == 'SpouseToSiblingToParentToParentTo')
+              ? 'GrandNiblingTo' // Source is Niece's/Nephew's/Nibling's Son, Daugher, or Child To End
+
+          : (rel == 'ChildToSibling') ||
+            (rel == 'ChildToSiblingToMarried') ||
+            (rel == 'SiblingToChildToSiblingTo') ||
+            (rel == 'SiblingToChildToSiblingToSiblingTo') ||
+            (rel == 'SiblingToChildToSiblingToParentToChildTo')
+              ? 'NiblingTo' // Source is Niece, Nephew, or Nibling To End
+
+          : (rel == 'SiblingToChildToSiblingToSpouseToSiblingTo')
+              ? 'SiblingNiblingTo' // Source is Nibling of End's Sibling
+
+          : (rel == 'SiblingToChildToSiblingToSpouseToChildTo')
+              ? 'ParsibParentTo' // Source is Uncle's, Aunt's, or Parsib's (by marriage) Parent To End
+
+          : (rel == 'ChildSiblingParent') ||
+            (rel == 'SiblingToChildToSiblingToParentTo') ||
+            (rel == 'SiblingToChildToSiblingToParentToSiblingTo') ||
+            (rel == 'SiblingToChildToSiblingToSpouseToParentTo')
+              ? 'CousinTo' // Source is Cousin To End
+
+          : (rel == 'SiblingToChildToSiblingToParentToParentTo')
+              ? 'FirstCousinOnceRemTo' // Source is First Cousin Once Removed To End (Cousin's Child or Grandparsib's Child)
+
+          : 'Unknown Relationship' // Relationship type is not defined for current path
+
+        if (newRel == 'Unknown Relationship') {
+          // console.log(`${sName} ${rel} ${eName}`);
+          unknowns.push(newRel)
+        }
         dirRel.push({sName, newRel, eName})
+        return unknowns
       })
-      console.log(`${sName} ${rel} ${eName}`);
-      console.log(dirRel)
+      // console.log(unknowns);
+      // console.log(dirRel);
       return dirRel
     })
     .catch(error => {
@@ -297,19 +396,16 @@ const getRelationships = () => {
 }
 
 // Take relationships from getRelationships and create database relationships
-const makeRelationships = (rels) => {
+const makeRelationships = (rel) => {
   let session = driver.session();
-  console.log(rels)
+  console.log(rel)
+  let start = rel.sName;
+  let relation = rel.newRel;
+  let end = rel.eName;
+  console.log(`${start} ${relation} ${end}`)
 
-  return rels.forEach(rel => {
-    let start = rel.sName;
-    let relation = rel.newRel;
-    let end = rel.eName
-
-    // Uncomment the following to see what relationships are being added
-    console.log(`${start} ${relation} ${end}`)
-
-    session.run(
+  return session
+    .run(
       'MATCH (s:Person {name:$start}), (t:Person {name:$end}) \
       MERGE (s)-[:FAMILY {relation:$relation}]->(t) \
       RETURN s.name AS sName, t.name AS tName',
@@ -321,8 +417,7 @@ const makeRelationships = (rels) => {
     )
     .then(results => {
       results.records.forEach(res => {
-        let sName = res.get('sName');
-        let tName = res.get('tName');
+        console.log(res);
       })
     })
     .catch(error => {
@@ -331,7 +426,34 @@ const makeRelationships = (rels) => {
     .finally(() => {
       return session.close();
     })
-  })
+
+  // return rels.forEach(rel => {
+
+  //   // Uncomment the following to see what relationships are being added
+
+  //   session.run(
+  //     'MATCH (s:Person {name:$start}), (t:Person {name:$end}) \
+  //     MERGE (s)-[:FAMILY {relation:$relation}]->(t) \
+  //     RETURN s.name AS sName, t.name AS tName',
+  //     {
+  //       start:start,
+  //       end:end,
+  //       relation:relation
+  //     }
+  //   )
+  //   .then(results => {
+  //     results.records.forEach(res => {
+  //       let sName = res.get('sName');
+  //       let tName = res.get('tName');
+  //     })
+  //   })
+  //   .catch(error => {
+  //     throw error;
+  //   })
+  //   .finally(() => {
+  //     return session.close();
+  //   })
+  // })
 }
 
 exports.getGraph = getGraph;
