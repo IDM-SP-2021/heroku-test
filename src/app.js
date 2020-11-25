@@ -4,7 +4,7 @@ var $ = require('jquery');
 const d3 = require('d3');
 import { customAlphabet } from 'nanoid'
 
-const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
+const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 5)
 
 var api = require('./scripts/neo4j')
 
@@ -44,14 +44,8 @@ $(function () {
     }
   });
 
-  function getRandomString(length) {
-    var randomChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy';
-    var result = '';
-    for ( var i = 0; i < length; i++ ) {
-        result += randomChars.charAt(Math.floor(Math.random() * randomChars.length));
-    }
-    return result;
-}
+  const makeRels = $('#make-rels button');
+  makeRels.on('click', generateRels);
 
   const testData = $('#test-data button');
   testData.on('click', () => {
@@ -116,7 +110,7 @@ $(function () {
         api
           .testData(query)
           .then(() => {
-            console.log('Test Data Generated')
+            console.log('Test Data Generated');
             $('.member').remove();
             $('#graph svg').remove();
             $('#current-members option').remove();
@@ -128,40 +122,18 @@ $(function () {
       })
   });
 
-  const makeRels = $('#make-rels button');
-  makeRels.on('click', () => {
-    console.log('Making Relationships');
-    let basicRels = [];
-    api
-      .getRelationships()
-      .then(rels => {
-        rels.forEach(rel => {
-          // console.log(rel.newRel)
-          // if (rel.newRel.match(/^(SpouseTo|SiblingTo|ChildTo|ParentTo)$/)) {
-          //   basicRels.push(rel);
-          // }
-        })
-        // console.log(basicRels);
-        // console.log(basicRels.slice(0,100))
-        // basicRels.slice(0,100).forEach(rel => {
-        //   api
-        //     .makeRelationships
-        // })
-        // api
-        //   .makeRelationships(basicRels.slice(0,100));
-      })
-      // .then(() => {
-      //   $('.member').remove();
-      //   $('#graph svg').remove();
-      //   $('#current-members option').remove();
-      // })
-      // .then(() => {
-      //   renderGraph();
-      //   makeList();
-      // });
-  });
+
 });
 
+const generateRels = () => {
+  console.log('Making Relationships');
+  let basicRels = [];
+  api
+    .getRelationships()
+    .then(() => {
+      console.log('Got Relationships')
+    })
+}
 
 const renderGraph = () => {
   // var width = window.innerWidth, height = 800;
@@ -336,10 +308,7 @@ const makeList = () => {
     .getFamily()
     .then(family => {
       family.forEach(member => {
-        console.log('Making List')
-        console.log(member)
         var memberName = member.name;
-        console.log(memberName)
         var listId = `member-${memberName}`
 
         if (familyMembers.includes(memberName) == false) {
