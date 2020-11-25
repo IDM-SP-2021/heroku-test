@@ -18,6 +18,8 @@ header {
 
 main {
 	position: relative;
+	display: flex;
+	flex-direction: column;
 }
 
 .brand-name {
@@ -31,8 +33,14 @@ main {
 	padding: 0 1rem 1rem;
 }
 
+#node-list {
+	width: 300px;
+	max-height: 250px;
+	overflow: scroll;
+}
+
 #graph {
-	height: 600px;
+	height: 800px;
 	width: 100%;
 	border: 2px solid #000;
 }
@@ -57,4 +65,10 @@ main {
 
 #dev-buttons > div {
 	margin-bottom: 1rem;
+}
+
+@media only screen and (min-width: 1024px) {
+	main {
+		flex-direction: row;
+	}
 }
