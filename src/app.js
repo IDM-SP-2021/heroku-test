@@ -130,10 +130,29 @@ const generateRels = () => {
   let basicRels = [];
   api
     .getRelationships()
-    .then(() => {
-      console.log('Got Relationships')
+    .then(results => {
+      let match = '';
+      let merge = '';
+
+      results[0].members.forEach(member => {
+        const mID = member.identity.low;
+        const mName = member.properties.name;
+
+        match += `MATCH (${mName}:Person) WHERE ID(${mName})= ${mID} `;
+      })
+
+      results[0].dirRel.forEach((i, idx, array) => {
+        const sName = i.start.properties.name;
+        const rel = i.simpleRel;
+        const eName = i.end.properties.name;
+
+        merge += `MERGE (${sName})-[:FAMILY {relation:'${rel}'}]->(${eName}) `
+      })
+      let query = match + merge + 'RETURN *';
+      console.log(query);
     })
 }
+
 
 const renderGraph = () => {
   // var width = window.innerWidth, height = 800;
@@ -147,11 +166,10 @@ const renderGraph = () => {
     .style('font', '1.5rem sans-serif')
     .attr('text-anchor', 'middle');
 
-  const g = svg.append('g');
-  const linksGr = g.append('g')
-    .attr('id', 'graph-links');
-  const nodesGr = g.append('g')
-    .attr('id', 'graph-nodes');
+  const container = svg.append('g');
+  const linksGr = container.append('g');
+  const nodesGr = container.append('g');
+  const nodesTxGr = container.append('g');
 
   const x = d3.scaleLinear([0, 1], [0, 100]);
   const y = d3.scaleLinear([0, 1], [0, 100]);
@@ -159,28 +177,38 @@ const renderGraph = () => {
   api
     .getGraph()
     .then(graph => {
-      const links = graph.links.map(d => Object.create(d));
-      const nodes = graph.nodes.map(d => Object.create(d));
+      let label = {
+        'nodes': [],
+        'links': []
+      };
 
-      const simulation = d3.forceSimulation(nodes)
-          .force('link', d3.forceLink(links).distance(250).id(d => d.id))
+      graph.nodes.forEach((d,i) => {
+        label.nodes.push({node: d});
+        label.nodes.push({node: d});
+        label.links.push({
+          source: i * 2,
+          target: i * 2 + 1
+        });
+      });
+
+      const simulation = d3.forceSimulation(graph.nodes)
+          .force('link', d3.forceLink(graph.links).distance(250).id(d => d.id))
           .force('charge', d3.forceManyBody().strength(-1000))
           .force('center', d3.forceCenter(width / 2, height / 2));
 
       const link = linksGr
           .attr('stroke', '#999')
         .selectAll('line')
-        .data(links)
+        .data(graph.links)
         .join('line')
           .attr('stroke-width', '3')
           .attr('stroke', '#999')
           .attr('class', d => d.relType);
 
       const node = nodesGr
-          .attr('stroke', '#fff')
           .attr('stroke-width', 1.5)
         .selectAll('g')
-        .data(nodes)
+        .data(graph.nodes)
         .join('g')
           .attr('cx', d => x(d[1]))
           .attr('cy', d => y(d[2]))
@@ -193,36 +221,15 @@ const renderGraph = () => {
           d.nodeUid = 'node-' + i;
           return d.nodeUid;
         })
+        .attr('r', 40)
+        .attr('stroke', '#fff')
         .attr('fill', '#3BCEAC')
         .attr('cx', d => x(d[1]))
         .attr('cy', d => y(d[2]))
-        // .attr('y', 0);
-
-
-      node.append('clipPath')
-          .attr('id', (d,i) => {
-            d.clipUid = 'clip-' + i;
-            return d.clipUid;
-          })
-        .append('use')
-          .attr('xlink:href', (d,i) => {
-            d.nodeUid = 'node-' + i;
-            return d.nodeUid;
-          });
 
       node.append('text')
-          .attr('clip-path', d => d.clipUid)
-          .attr('dx', d => x(d[1]))
-          .attr('dy', d => y(d[2]))
-          .attr('stroke', 'none')
-          .attr('fill', '#fff')
-        .selectAll('tspan')
-        .data(d => d.name)
-        .data(d => d.name.split(/(?=[A-Z][a-z])|\s+/g))
-        .join('tspan')
-          .attr('x', 0)
-          .attr('y', (d, i, nodes) => `${i - nodes.length / 2 + 0.8}em`)
-          .text(d => d);
+        .text(d =>  d.name)
+        .style('fill', '#555')
 
       node.append('title')
         .text(d => {
@@ -247,18 +254,23 @@ const renderGraph = () => {
             .attr('cy', d => d.y);
 
         node
-          .selectAll('text')
+          .selectAll('clipPath')
             .attr('dx', d => d.x)
             .attr('dy', d => d.y);
+
+        node
+          .selectAll('text')
+            .attr('dx', d => d.x)
+            .attr('dy', d => d.y + 60);
       });
 
       let transform;
 
-      const zoom = d3.zoom().on('zoom', e => {
-        g.attr('transform', (transform = e.transform));
-        g.style('stroke-width', 3 / Math.sqrt(transform.k));
-        node.selectAll('circle').attr('r', 50 / Math.sqrt(transform.k));
-      });
+      const zoom = d3.zoom()
+        .scaleExtent([.1, 4])
+        .on('zoom', e => {
+          container.attr('transform', (transform = e.transform));
+        });
 
       return svg
         .call(zoom)
@@ -294,82 +306,51 @@ const renderGraph = () => {
 const makeList = () => {
   const memberList = $('#node-list');
   const memberSelect = $('#current-members');
-  var familyMembers = [];
-
-  if ($('.member').length > 0) {
-    $('.member').each(function() {
-      var elId = this.id;
-      var memberName = elId.substring(elId.indexOf("-") + 1);
-      familyMembers.push(memberName);
-    });
-  }
 
   api
     .getFamily()
     .then(family => {
       family.forEach(member => {
-        var memberName = member.name;
-        var listId = `member-${memberName}`
+        let memberId = member.id;
+        let memberName = member.name;
 
-        if (familyMembers.includes(memberName) == false) {
-          memberList.append(`<li id="${listId}" class="member">${member.name}</li>`);
-
-          memberSelect.append(`<option value=${memberName}>${memberName}</option>`);
-
-          familyMembers.push(memberName)
-        } else {
-          console.log('Name in list')
-        }
+        memberList.append(`<li class="member">${memberName}</li>`);
+        memberSelect.append(`<option value="${memberId}">${memberName}</option>`);
       });
     })
 }
 
 
 const addMember = (m, r, n, g) => {
-  let query = [];
-  const src = n;
-  const rel = r;
-  let rev = (rel == 'ChildTo') ? 'ParentTo'
-            : (rel == 'ParentTo') ? 'ChildTo'
-            : (rel == 'SiblingTo') ? 'SiblingTo'
-            : (rel == 'SpouseTo') ? 'SpouseTo'
+  let query = {};
+  query.src = n;
+  query.rel = r;
+  query.rev = (query.rel == 'ChildTo') ? 'ParentTo'
+            : (query.rel == 'ParentTo') ? 'ChildTo'
+            : (query.rel == 'SiblingTo') ? 'SiblingTo'
+            : (query.rel == 'SpouseTo') ? 'SpouseTo'
             : 'Unknown';
-  const tar = m;
-  const gen = g;
+  query.tar = parseInt(m);
+  query.gen = g;
 
-  query.push(src, rel, rev, tar, gen);
+  console.log(typeof query.tar);
+  // query.push({src, rel, rev, tar, gen});
 
   console.log(query);
 
-  if (src !== "" && src !== undefined) {
-    console.log(`Valid name submitted. Creating person ${src} who is ${gen}. ${src} is ${r} ${tar} and ${tar} is ${rev} ${src}.`)
+  if (query.src !== "" && query.src !== undefined) {
+    console.log(`Valid name submitted. Creating person ${query.src} who is ${query.gen}. ${query.src} is ${query.rel} ${query.tar} and ${query.tar} is ${query.rev} ${query.src}.`)
     api
       .addFamilyMember(query)
+      .then(() => {
+        $('.member').remove();
+        $('#graph svg').remove();
+        $('#current-members option').remove();
+      })
+      .then(() => {
+        renderGraph();
+        makeList();
+      })
   }
-  // if (newName !== "" && newName !== undefined) {
-  //   console.log('newName is valid: ' + newName);
 
-  //   api
-  //     .checkFamily(newName)
-  //     .then(members => {
-  //       if (members.length > 0) {
-  //         console.log('Person with that name already exists');
-  //       } else {
-  //         console.log('Person does not exist yet');
-  //         api
-  //           .addFamilyMember(query)
-  //           .then(() => {
-  //             $('.member').remove();
-  //             $('#graph svg').remove();
-  //             $('#current-members option').remove();
-  //           })
-  //           .then(result => {
-  //             renderGraph();
-  //             makeList();
-  //           });
-  //       }
-  //     })
-  // } else {
-  //   console.log('Query is invalid');
-  // }
 }

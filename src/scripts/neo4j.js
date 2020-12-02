@@ -15,7 +15,8 @@ const getGraph = () => {
       RETURN ID(p) AS id, p.name AS name'
     ),
     session.run(
-      'MATCH (s:Person)-[r]->(t:Person) \
+      'MATCH (s:Person)-[r:FAMILY]->(t:Person) \
+      WHERE r.relation = "ParentTo" OR r.relation = "ChildTo" OR r.relation = "SiblingTo" OR r.relation = "SpouseTo" \
       RETURN ID(s) AS src_id, ID(t) AS tar_id, r.relation AS rel_type'
     )
   ])
@@ -116,11 +117,11 @@ const checkFamily = (queryString) => {
 const addFamilyMember = (queryString) => {
   let session = driver.session();
 
-  let s = queryString[0];
-  let r = queryString[1];
-  let rev = queryString[2];
-  let t = queryString[3];
-  let g = queryString[4];
+  let s = queryString.src;
+  let r = queryString.rel;
+  let rev = queryString.rev;
+  let t = queryString.tar;
+  let g = queryString.gen;
 
   console.log(queryString);
   console.log(`Source: ${s}`);
@@ -129,13 +130,12 @@ const addFamilyMember = (queryString) => {
 
   return session
     .run(
-      'MERGE (n:Person {name:$s, gender:$g}) \
-       WITH n \
-       MATCH (s:Person {name:$s}), \
-             (t:Person {name:$t}) \
-       CREATE (s)-[rel:FAMILY {relation:$r}]->(t), \
-              (t)-[revRel:FAMILY {relation:$rev}]->(s) \
-       RETURN s.name AS sName, rel.relation AS relation, revRel.relation AS revRelation, t.name AS tName',
+      'CREATE (s:Person {name:$s, gender:$g}) \
+       WITH s \
+       MATCH (t:Person) WHERE ID(t)= $t\
+       CREATE (s)-[:FAMILY {relation:$r}]->(t), \
+              (t)-[:FAMILY {relation:$rev}]->(s) \
+       RETURN *',
        {s:s, g:g, r:r, rev:rev, t:t}
     )
     .then(result => {
@@ -236,112 +236,21 @@ const testData = (query) => {
 
 const simplifyPath = (path) => {
   let simplified =
-    (path == 'ChildTo') ||
-    (path == 'SiblingToChildTo') ||
-    (path == 'SiblingToSiblingToChildTo')
-      ? 'ChildTo' //Source is Son, Daughter, or Child to End
-
-    : (path == 'SpouseTo') ||
-      (path == 'ParentToChildTo') ||
-      (path == 'ParentToSiblingToChildTo')
-        ? 'SpouseTo' // Source is Husband, Wife, or Spouse to End
-
-    : (path == 'ParentTo') ||
-      (path == 'ParentToSiblingTo') ||
-      (path == 'ParentToSiblingToSiblingTo') ||
-      (path == 'SpouseToParentTo')
-        ? 'ParentTo' // Source is Mother, Father, or Parent To End
-
-    : (path == 'SiblingToChildToChildTo') ||
-      (path == 'SiblingToChildToSiblingToChildTo')
-        ? 'GrandchildTo' // Source is Grandson, Granddaughter, or Grandchild to End
-
-    : (path == 'ParentToParentTo') ||
-      (path == 'ParentToSpouseToParentTo') ||
-      (path == 'ParentToParentToSiblingTo') ||
-      (path == 'ParentToSiblingToParentToSiblingTo') ||
-      (path == 'ParentToSiblingToParentTo') ||
-      (path == 'ParentToSiblingToSpouseToParentTo')
-        ? 'GrandparentTo' // Source is Grandfather, Grandmother, or Grandparent to End
-
-    : (path == 'ParentToParentToParentTo') ||
-      (path == 'ParentToSiblingToParentToParentTo')
-        ? 'GreatGrandparentTo' // Source is Great Grandfather, Great Grandmother, or Great Grandparent to End
-
-    : (path == 'SiblingTo') ||
-      (path == 'SiblingToSiblingTo') ||
-      (path == 'SiblingToSiblingToSiblingTo') ||
-      (path == 'SiblingToChildToParentTo')
-        ? 'SiblingTo' // Source is Brother, Sister, or Sibling to End
-
-    : (path == 'SpouseToChildTo')
-        ? 'ChildInLawTo' // Source is Son-in-Law, Daughter-in-Law, or Child-in-Law to End
-
-    : (path == 'ParentToSpouseToChildTo') ||
-      (path == 'ParentToSiblingToSpouseToChildTo')
-        ? 'ChildParentInLawTo' // Source is the Parent-in-Law to End's Child
-
-    : (path == 'SiblingToSpouseTo') ||
       (path == 'SpouseToSiblingTo') ||
-      (path == 'SpouseToSiblingToSiblingTo') ||
-      (path == 'SpouseToSiblingToSpouseTo') ||
-      (path == 'SpouseToSiblingToParentToChildTo')
-        ? 'SiblingInLawTo' // Source is Brother-in-Law, Sister-in-Law, or Sibling-in-Law to End
-
-    : (path == 'SpouseToSiblingToSpouseToSiblingTo')
-        ? 'SiblingInLawSiblingTo' // Source is Brother-in-Law's Sibling, Sister-in-Law's Sibling, or Sibling-in-Law's Sibling To End
-
-    : (path == 'SpouseToSiblingToSpouseToChildTo') ||
-      (path == 'SiblingToSpouseToChildTo')
-        ? 'SiblingInLawParentTo' // Source is Brother-in-Law's Parent, Sister-in-Law's Parent, or Sibling-in-Law's Parent To End
-
-    : (path == 'ParentToSpouseTo') ||
-      (path == 'ParentToSpouseToSpouseTo') ||
-      (path == 'ParentToSiblingToParentToChildTo') ||
-      (path == 'ParentToSiblingToSpouseTo')
-        ? 'ParentInLawTo' // Source is Father-in-Law, Mother-in-Law, or Parent-in-Law to End
-
-    : (path == 'ParentToSpouseToSiblingTo') ||
-      (path == 'ParentToSiblingToSpouseToSiblingTo')
-        ? 'SiblingParentInLawTo' // Source is Parent-in-Law to End's Sibling
-
-    : (path == 'ParentToParentToSpouseTo') ||
-      (path == 'ParentToParentToChildTo') ||
-      (path == 'ParentToSiblingToParentToSpouseTo')
-        ? 'GrandparentInLawTo' // Source is Grandfather-in-Law, Grandmother-in-Law, or Grandparent-in-Law to End (End's Spouse's Grandparent)
+      (path == 'SiblingToSpouseTo') ||
+      (path == 'SpouseToSiblingToSpouseTo')
+        ? 'SiblingInLawTo' // Source is the Brother-in-Law, Sister-in-Law, or Sibling-in-Law to End
 
     : (path == 'SiblingToParentTo') ||
-      (path == 'SiblingToSpouseToParentTo') ||
-      (path == 'SiblingToSiblingToParentTo') ||
-      (path == 'SpouseToSiblingToParentTo') ||
-      (path == 'SpouseToSiblingToSpouseToParentTo') ||
-      (path == 'SpouseToSiblingToParentToSiblingTo')
-        ? 'ParsibTo' // Source is Uncle, Aunt, or Parent's Sibling To End
+      (path == 'SpouseToSiblingToParentTo')
+        ? 'ParsibTo' // Source is Uncle, Aunt, or Parsib to End
 
-    : (path == 'SpouseToSiblingToParentToParentTo')
-        ? 'GrandNiblingTo' // Source is Niece's/Nephew's/Nibling's Son, Daugher, or Child To End
+    : (path == 'ChildToSiblingTo') ||
+      (path == 'ChildToSiblingToSpouseTo')
+        ? 'NiblingTo' // Source is Nephew, Niece, or Nibling to End
 
-    : (path == 'ChildToSibling') ||
-      (path == 'ChildToSiblingToMarried') ||
-      (path == 'SiblingToChildToSiblingTo') ||
-      (path == 'SiblingToChildToSiblingToSiblingTo') ||
-      (path == 'SiblingToChildToSiblingToParentToChildTo')
-        ? 'NiblingTo' // Source is Niece, Nephew, or Nibling To End
-
-    : (path == 'SiblingToChildToSiblingToSpouseToSiblingTo')
-        ? 'SiblingNiblingTo' // Source is Nibling of End's Sibling
-
-    : (path == 'SiblingToChildToSiblingToSpouseToChildTo')
-        ? 'ParsibParentTo' // Source is Uncle's, Aunt's, or Parsib's (by marriage) Parent To End
-
-    : (path == 'ChildSiblingParent') ||
-      (path == 'SiblingToChildToSiblingToParentTo') ||
-      (path == 'SiblingToChildToSiblingToParentToSiblingTo') ||
-      (path == 'SiblingToChildToSiblingToSpouseToParentTo')
-        ? 'CousinTo' // Source is Cousin To End
-
-    : (path == 'SiblingToChildToSiblingToParentToParentTo')
-        ? 'FirstCousinOnceRemTo' // Source is First Cousin Once Removed To End (Cousin's Child or Grandparsib's Child)
+    : (path == 'ChildToSiblingToParentTo')
+        ? 'CousinTo'
 
     : 'Unknown Relationship' // Relationship type is not defined for current path
 
@@ -360,47 +269,35 @@ const getRelationships = () => {
       UNWIND nodes AS m \
       WITH * WHERE id(n) <> id(m) \
       MATCH path = allShortestPaths( (n)-[*..10]->(m) ) \
-      RETURN n AS start, relationships(path) AS relationship, m AS end'
+      RETURN nodes, n AS start, relationships(path) AS relationship, m AS end'
     )
     .then(results => {
       let dirRel = [];
+      let members = results.records[0].get('nodes');
 
       results.records.forEach(res => {
         let relPath = [];
-        const start = res.get('start').properties;
+        const start = res.get('start');
         const sName = start.name;
         const relationship = res.get('relationship');
-        const end = res.get('end').properties;
+        const end = res.get('end');
         const eName = end.name;
 
         relationship.forEach(relation => {
           relPath.push(relation.properties.relation)
         })
+        // console.log(relPath)
         if (relPath.length > 1) {
           simpleRel = simplifyPath(relPath.join(''))
           // console.log('Simplified: ' + simpleRel)
           if (simpleRel == 'Unknown Relationship') {
             console.log(`Complex rel ${relPath.join('')}`)
           }
+          dirRel.push({start, simpleRel, end})
         }
-        // for (i = 0; i < relationship.length; i++) {
-        //   relPath.push(relationship[i].properties.relation);
-        //   if (relPath.length > 1) {
-        //     rel = simplifyPath(relPath.join(''))
-        //   } else {
-        //     rel = relPath.toString()
-        //   }
-        //   // console.log(rel)
-        //   if (rel == 'Undefined Relationship') {
-        //     console.log(relPath.join(''))
-        //   } else {
-        //     // dirRel.push({sName, rel, eName})
-        //     console.log(`${sName} is ${rel} ${eName}`)
-        //   }
-        // }
       })
-      // console.log(dirRel);
-      return dirRel
+
+      return [{members, dirRel}]
     })
     .catch(error => {
       throw error;
