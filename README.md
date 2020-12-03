@@ -63,10 +63,33 @@ Access the app (insert URL here)
    (Jane)-[:FAMILY {relation: 'ParentTo'}]->(Rob),
    (Rob)-[:FAMILY {relation: 'ChildTo'}]->(Jane),
    (Joe)-[:FAMILY {relation: 'SiblingTo'}]->(Rob),
-   (Rob)-[:FAMILY {relation: 'SiblingTo'}]->(Joe)
+   (Rob)-[:FAMILY {relation: 'SiblingTo'}]->(Joe),
+   (Jill)-[:FAMILY {relation:'SiblingInLawTo'}]->(John),
+   (Jill)-[:FAMILY {relation:'SiblingInLawTo'}]->(Jane),
+   (Jill)-[:FAMILY {relation:'ParsibTo'}]->(Joe),
+   (Jill)-[:FAMILY {relation:'ParsibTo'}]->(Rob),
+   (Jack)-[:FAMILY {relation:'SiblingInLawTo'}]->(Jane),
+   (Jack)-[:FAMILY {relation:'ParsibTo'}]->(Joe),
+   (Jack)-[:FAMILY {relation:'ParsibTo'}]->(Rob),
+   (Sam)-[:FAMILY {relation:'NiblingTo'}]->(John),
+   (Sam)-[:FAMILY {relation:'NiblingTo'}]->(Jane),
+   (Sam)-[:FAMILY {relation:'CousinTo'}]->(Joe),
+   (Sam)-[:FAMILY {relation:'CousinTo'}]->(Rob),
+   (John)-[:FAMILY {relation:'SiblingInLawTo'}]->(Jill),
+   (John)-[:FAMILY {relation:'ParsibTo'}]->(Sam),
+   (Jane)-[:FAMILY {relation:'SiblingInLawTo'}]->(Jill),
+   (Jane)-[:FAMILY {relation:'SiblingInLawTo'}]->(Jack),
+   (Jane)-[:FAMILY {relation:'ParsibTo'}]->(Sam),
+   (Joe)-[:FAMILY {relation:'NiblingTo'}]->(Jill),
+   (Joe)-[:FAMILY {relation:'NiblingTo'}]->(Jack),
+   (Joe)-[:FAMILY {relation:'CousinTo'}]->(Sam),
+   (Rob)-[:FAMILY {relation:'NiblingTo'}]->(Jill),
+   (Rob)-[:FAMILY {relation:'NiblingTo'}]->(Jack),
+   (Rob)-[:FAMILY {relation:'CousinTo'}]->(Sam)
+   RETURN *
     ```
 
-   6. To check that the databse has been setup correctly run the following cypher command. This will return 7 nodes and 10 connections
+   1. To check that the databse has been setup correctly run the following cypher command. This will return 7 nodes and 10 connections
 
    ```cypher
    MATCH (p:Person) RETURN p
@@ -102,6 +125,18 @@ Access the app (insert URL here)
   ```
 
 ## Helpful CYPHER queries
+
+Return all nodes and relationships in the database.
+
+   ```cypher
+   MATCH (n) RETURN n
+   ```
+
+Return only the people and their relationships to each other in the database.
+
+   ```cypher
+   MATCH (p:Person) RETURN p
+   ```
 
 Return all the shortest paths between all the nodes. This will be used to find how individuals are related to generate new relationships.
 
