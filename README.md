@@ -44,6 +44,8 @@ Access the app (insert URL here)
    (Jane:Person {name: 'Jane', gender: 'F'}),
    (Joe:Person {name: 'Joe', gender: 'M'}),
    (Rob:Person {name: 'Rob', gender: 'M'}),
+   (n:MEMORY {title:"Rob's High School Graduation", date:'6-3-20', text:'Today Rob finished his high school career! He is off to college now!'}),
+   (m:MEMORY {title:"Fifteen Year Wedding Anniversary", date:'12-4-19', text:'Hard to believe it has been fifteen years already!'})
    (Jill)-[:FAMILY {relation: 'SpouseTo'}]->(Jack),
    (Jack)-[:FAMILY {relation: 'SpouseTo'}]->(Jill),
    (Jill)-[:FAMILY {relation: 'ParentTo'}]->(Sam),
@@ -85,7 +87,12 @@ Access the app (insert URL here)
    (Joe)-[:FAMILY {relation:'CousinTo'}]->(Sam),
    (Rob)-[:FAMILY {relation:'NiblingTo'}]->(Jill),
    (Rob)-[:FAMILY {relation:'NiblingTo'}]->(Jack),
-   (Rob)-[:FAMILY {relation:'CousinTo'}]->(Sam)
+   (Rob)-[:FAMILY {relation:'CousinTo'}]->(Sam),
+   (John)-[:TAGGED]->(n),
+   (Jane)-[:TAGGED]->(n),
+   (Rob)-[:TAGGED]->(n),
+   (Jill)-[:TAGGED]->(m),
+   (Jack)-[:TAGGED]->(m)
    RETURN *
     ```
 
@@ -149,3 +156,10 @@ Return all the shortest paths between all the nodes. This will be used to find h
    MATCH path = allShortestPaths( (n)-[*..4]-(m) )
    RETURN path
    ```
+
+
+CREATE (n:MEMORY {title:"Rob's High School Graduation", date:'6-3-20', text:'Today Rob finished his high school career! He is off to college now!'})
+WITH n
+MATCH (Rob:Person {name:'Rob'}), (John:Person {name:'John'}), (Jane:Person {name:'Jane'})
+CREATE (John)-[:OWNER]->(n), (Jane)-[:TAGGED]->(n), (Rob)-[:TAGGED]->(n)
+RETURN *

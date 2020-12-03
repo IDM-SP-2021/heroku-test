@@ -100,17 +100,19 @@ const resetData = () => {
       DELETE r'
     ),
     session.run(
-      'MATCH (p:Person) \
-      DELETE p'
+      'MATCH (n) \
+      DETACH DELETE n'
     ),
     session.run(
       'CREATE (Jill:Person {name: "Jill", gender: "F"}), \
               (Jack:Person {name: "Jack", gender: "M"}), \
-              (Sam:Person {name: "Sam", gender: "M"}), \
               (John:Person {name: "John", gender: "M"}), \
+              (Sam:Person {name: "Sam", gender: "M"}), \
               (Jane:Person {name: "Jane", gender: "F"}), \
               (Joe:Person {name: "Joe", gender: "M"}), \
               (Rob:Person {name: "Rob", gender: "M"}), \
+              (n:MEMORY {title:"Rob\'s High School Graduation", \ date:"6-3-20", text:"Today Rob finished his high school career! He is off to college now!"}), \
+              (m:MEMORY {title:"Fifteen Year Wedding Anniversary", date:"12-4-19", text:"Hard to believe it has been fifteen years already!"}), \
               (Jill)-[:FAMILY {relation: "SpouseTo"}]->(Jack), \
               (Jack)-[:FAMILY {relation: "SpouseTo"}]->(Jill), \
               (Jill)-[:FAMILY {relation: "ParentTo"}]->(Sam), \
@@ -152,7 +154,13 @@ const resetData = () => {
               (Joe)-[:FAMILY {relation:"CousinTo"}]->(Sam), \
               (Rob)-[:FAMILY {relation:"NiblingTo"}]->(Jill), \
               (Rob)-[:FAMILY {relation:"NiblingTo"}]->(Jack), \
-              (Rob)-[:FAMILY {relation:"CousinTo"}]->(Sam)',
+              (Rob)-[:FAMILY {relation:"CousinTo"}]->(Sam), \
+              (John)-[:TAGGED]->(n), \
+              (Jane)-[:TAGGED]->(n), \
+              (Rob)-[:TAGGED]->(n), \
+              (Jill)-[:TAGGED]->(m), \
+              (Jack)-[:TAGGED]->(m) \
+              RETURN *',
     )
   ])
   .then(() => {
