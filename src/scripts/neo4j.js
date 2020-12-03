@@ -90,6 +90,82 @@ const getFamily = () => {
     })
 }
 
+// Delete all data in the database and reinstance it with starting data
+const resetData = () => {
+  let session = driver.session()
+
+  return Promise.all([
+    session.run(
+      'MATCH (p:Person)-[r]->(n:Person) \
+      DELETE r'
+    ),
+    session.run(
+      'MATCH (p:Person) \
+      DELETE p'
+    ),
+    session.run(
+      'CREATE (Jill:Person {name: "Jill", gender: "F"}), \
+              (Jack:Person {name: "Jack", gender: "M"}), \
+              (Sam:Person {name: "Sam", gender: "M"}), \
+              (John:Person {name: "John", gender: "M"}), \
+              (Jane:Person {name: "Jane", gender: "F"}), \
+              (Joe:Person {name: "Joe", gender: "M"}), \
+              (Rob:Person {name: "Rob", gender: "M"}), \
+              (Jill)-[:FAMILY {relation: "SpouseTo"}]->(Jack), \
+              (Jack)-[:FAMILY {relation: "SpouseTo"}]->(Jill), \
+              (Jill)-[:FAMILY {relation: "ParentTo"}]->(Sam), \
+              (Sam)-[:FAMILY {relation: "ChildTo"}]->(Jill), \
+              (Jack)-[:FAMILY {relation: "ParentTo"}]->(Sam), \
+              (Sam)-[:FAMILY {relation: "ChildTo"}]->(Jack), \
+              (Jack)-[:FAMILY {relation: "SiblingTo"}]->(John), \
+              (John)-[:FAMILY {relation: "SiblingTo"}]->(Jack), \
+              (John)-[:FAMILY {relation: "SpouseTo"}]->(Jane), \
+              (Jane)-[:FAMILY {relation: "SpouseTo"}]->(John), \
+              (John)-[:FAMILY {relation: "ParentTo"}]->(Joe), \
+              (Joe)-[:FAMILY {relation: "ChildTo"}]->(John), \
+              (John)-[:FAMILY {relation: "ParentTo"}]->(Rob), \
+              (Rob)-[:FAMILY {relation: "ChildTo"}]->(John), \
+              (Jane)-[:FAMILY {relation: "ParentTo"}]->(Joe), \
+              (Joe)-[:FAMILY {relation: "ChildTo"}]->(Jane), \
+              (Jane)-[:FAMILY {relation: "ParentTo"}]->(Rob), \
+              (Rob)-[:FAMILY {relation: "ChildTo"}]->(Jane), \
+              (Joe)-[:FAMILY {relation: "SiblingTo"}]->(Rob), \
+              (Rob)-[:FAMILY {relation: "SiblingTo"}]->(Joe), \
+              (Jill)-[:FAMILY {relation:"SiblingInLawTo"}]->(John), \
+              (Jill)-[:FAMILY {relation:"SiblingInLawTo"}]->(Jane), \
+              (Jill)-[:FAMILY {relation:"ParsibTo"}]->(Joe), \
+              (Jill)-[:FAMILY {relation:"ParsibTo"}]->(Rob), \
+              (Jack)-[:FAMILY {relation:"SiblingInLawTo"}]->(Jane), \
+              (Jack)-[:FAMILY {relation:"ParsibTo"}]->(Joe), \
+              (Jack)-[:FAMILY {relation:"ParsibTo"}]->(Rob), \
+              (Sam)-[:FAMILY {relation:"NiblingTo"}]->(John), \
+              (Sam)-[:FAMILY {relation:"NiblingTo"}]->(Jane), \
+              (Sam)-[:FAMILY {relation:"CousinTo"}]->(Joe), \
+              (Sam)-[:FAMILY {relation:"CousinTo"}]->(Rob), \
+              (John)-[:FAMILY {relation:"SiblingInLawTo"}]->(Jill), \
+              (John)-[:FAMILY {relation:"ParsibTo"}]->(Sam), \
+              (Jane)-[:FAMILY {relation:"SiblingInLawTo"}]->(Jill), \
+              (Jane)-[:FAMILY {relation:"SiblingInLawTo"}]->(Jack), \
+              (Jane)-[:FAMILY {relation:"ParsibTo"}]->(Sam), \
+              (Joe)-[:FAMILY {relation:"NiblingTo"}]->(Jill), \
+              (Joe)-[:FAMILY {relation:"NiblingTo"}]->(Jack), \
+              (Joe)-[:FAMILY {relation:"CousinTo"}]->(Sam), \
+              (Rob)-[:FAMILY {relation:"NiblingTo"}]->(Jill), \
+              (Rob)-[:FAMILY {relation:"NiblingTo"}]->(Jack), \
+              (Rob)-[:FAMILY {relation:"CousinTo"}]->(Sam)',
+    )
+  ])
+  .then(() => {
+    console.log('Reset database');
+  })
+  .catch(error => {
+    throw error;
+  })
+  .finally(() => {
+    return session.close();
+  })
+}
+
 // Check if node exists in database
 const checkFamily = (queryString) => {
   let session = driver.session();
@@ -114,6 +190,69 @@ const checkFamily = (queryString) => {
     })
 }
 
+// Simplify multi-step relationship path to a one step relationship
+const simplifyPath = (path) => {
+  let simplified =
+      (path == 'ChildToSpouseTo') ||
+      (path == 'SiblingToChildTo')
+        ? 'ChildTo' // Source is Son, Daughter, or Child to End
+
+    : (path == 'SpouseToParentTo') ||
+      (path == 'ParentToSiblingTo')
+        ? 'ParentTo' // Source is Father, Mother, or Parent to End
+
+    : (path == 'ChildToParentTo') ||
+      (path == 'SiblingToSiblingTo')
+        ? 'SiblingTo' // Source is Brother, Sister, or Sibling to End
+
+    : (path == 'ChildToChildTo') ||
+      (path == 'NiblingToChildTo') ||
+      (path == 'SiblingToGrandchildTo')
+        ? 'GrandchildTo' // Source is Grandson, Granddaughter, or Grandchild to End
+
+    : (path == 'ParentToParentTo') ||
+      (path == 'ParentToParsibTo') ||
+      (path == 'GrandparentToSiblingTo')
+        ? 'GrandparentTo' // Source is Grandfather, Grandmother, or Grandparent to End
+
+    : (path == 'SpouseToSiblingTo') ||
+      (path == 'SiblingToSpouseTo') ||
+      (path == 'SpouseToSiblingToSpouseTo')
+        ? 'SiblingInLawTo' // Source is the Brother-in-Law, Sister-in-Law, or Sibling-in-Law to End
+
+    : (path == 'SpouseToChildTo') ||
+      (path == 'SiblingInLawToChildTo')
+        ? 'ChildInLawTo' // Source is Son-in-Law, Daughter-in-Law, or Child-in-Law to End
+
+    : (path == 'ParentToSpouseTo') ||
+      (path == 'ParentToSiblingInLawTo')
+        ? 'ParentInLawTo' // Source is Father-in-Law, Mother-in-Law, or Parent-in-Law to End
+
+    : (path == 'SiblingToParentTo') ||
+      (path == 'SpouseToSiblingToParentTo') ||
+      (path == 'SiblingInLawToParentTo') ||
+      (path == 'ParsibToSiblingTo')
+        ? 'ParsibTo' // Source is Uncle, Aunt, or Parsib to End
+
+    : (path == 'ChildToSiblingTo') ||
+      (path == 'ChildToSiblingToSpouseTo') ||
+      (path == 'ChildToSpouseToSiblingTo') ||
+      (path == 'ChildToSiblingInLawTo') ||
+      (path == 'SiblingToNiblingTo')
+        ? 'NiblingTo' // Source is Nephew, Niece, or Nibling to End
+
+    : (path == 'ChildToSiblingToParentTo') ||
+      (path == 'ChildToParsibTo') ||
+      (path == 'NiblingToParentTo') ||
+      (path == 'SiblingToCousinTo')
+        ? 'CousinTo'
+
+    : 'Unknown Relationship' // Relationship type is not defined for current path
+
+  return simplified;
+}
+
+// Add a single node to the database and map relationships between it and all other nodes
 const addFamilyMember = (queryString) => {
   let session = driver.session();
 
@@ -143,13 +282,51 @@ const addFamilyMember = (queryString) => {
        WITH * WHERE id(n) <> id(m) \
        MATCH path = allShortestPaths( (n)-[*..10]->(m) ) \
        MATCH revPath = allShortestPaths( (m)-[*..10]->(n) ) \
-       RETURN n AS start, relationships(path) AS relationship, m AS end, relationships(revPath) AS revRelationship',
+       RETURN nodes, n AS start, relationships(path) AS relationship, m AS end, relationships(revPath) AS revRelationship',
        {s:s, g:g, r:r, rev:rev, t:t}
     )
     .then(results => {
+      let dirRel = [];
+      let members = results.records[0].get('nodes');
+
       results.records.forEach(res => {
-        console.log(res);
+        let relPath = [];
+        let revRelPath = [];
+        const start = res.get('start');
+        const relationship = res.get('relationship');
+        const revRelationship = res.get('revRelationship');
+        const end = res.get('end');
+
+        relationship.forEach(relation => {
+          relPath.push(relation.properties.relation);
+        })
+
+        revRelationship.forEach(relation => {
+          revRelPath.push(relation.properties.relation);
+        })
+
+        if (relPath.length > 1) {
+          simpleRel = simplifyPath(relPath.join(''))
+          // console.log('Simplified: ' + simpleRel)
+          if (simpleRel == 'Unknown Relationship') {
+            console.log(`Complex rel ${start.properties.name} ${relPath.join('')} ${end.properties.name}`)
+          } else {
+            dirRel.push({start, simpleRel, end})
+          }
+        }
+
+        if (revRelPath.length > 1) {
+          simpleRel = simplifyPath(revRelPath.join(''))
+          // console.log('Simplified: ' + simpleRel)
+          if (simpleRel == 'Unknown Relationship') {
+            console.log(`Complex rel ${end.properties.name} ${revRelPath.join('')} ${start.properties.name}`)
+          } else {
+            dirRel.push({end, simpleRel, start})
+          }
+        }
       })
+
+      return [{members, dirRel}]
     })
     .catch(error => {
       throw error;
@@ -157,114 +334,6 @@ const addFamilyMember = (queryString) => {
     .finally(() => {
       return session.close();
     });
-}
-
-const resetData = () => {
-  let session = driver.session()
-
-  return Promise.all([
-    session.run(
-      'MATCH (p:Person)-[r]->(n:Person) \
-      DELETE r'
-    ),
-    session.run(
-      'MATCH (p:Person) \
-      DELETE p'
-    ),
-    session.run(
-      'CREATE (Jill:Person {name:$Jill, gender:$F}), \
-              (Jack:Person {name:$Jack, gender:$M}), \
-              (Sam:Person {name:$Sam, gender:$M}), \
-              (John:Person {name:$John, gender:$M}), \
-              (Jane:Person {name:$Jane, gender:$F}), \
-              (Joe:Person {name:$Joe, gender:$M}), \
-              (Rob:Person {name:$Rob, gender:$M}), \
-              (Jill)-[:FAMILY {relation:$Married}]->(Jack), \
-              (Jack)-[:FAMILY {relation:$Married}]->(Jill), \
-              (Jill)-[:FAMILY {relation:$Parent}]->(Sam), \
-              (Sam)-[:FAMILY {relation:$Child}]->(Jill), \
-              (Jack)-[:FAMILY {relation:$Parent}]->(Sam), \
-              (Sam)-[:FAMILY {relation:$Child}]->(Jack), \
-              (Jack)-[:FAMILY {relation:$Sibling}]->(John), \
-              (John)-[:FAMILY {relation:$Sibling}]->(Jack), \
-              (John)-[:FAMILY {relation:$Married}]->(Jane), \
-              (Jane)-[:FAMILY {relation:$Married}]->(John), \
-              (John)-[:FAMILY {relation:$Parent}]->(Joe), \
-              (Joe)-[:FAMILY {relation:$Child}]->(John), \
-              (John)-[:FAMILY {relation:$Parent}]->(Rob), \
-              (Rob)-[:FAMILY {relation:$Child}]->(John), \
-              (Jane)-[:FAMILY {relation:$Parent}]->(Joe), \
-              (Joe)-[:FAMILY {relation:$Child}]->(Jane), \
-              (Jane)-[:FAMILY {relation:$Parent}]->(Rob), \
-              (Rob)-[:FAMILY {relation:$Child}]->(Jane), \
-              (Joe)-[:FAMILY {relation:$Sibling}]->(Rob), \
-              (Rob)-[:FAMILY {relation:$Sibling}]->(Joe)',
-      {
-        Jill: 'Jill',
-        Jack: 'Jack',
-        Sam: 'Sam',
-        John: 'John',
-        Jane: 'Jane',
-        Joe: 'Joe',
-        Rob: 'Rob',
-        Married: 'SpouseTo',
-        Parent: 'ParentTo',
-        Child: 'ChildTo',
-        Sibling: 'SiblingTo',
-        M: 'M',
-        F: 'F'
-      }
-    )
-  ])
-  .then(() => {
-    console.log('Reset database');
-  })
-  .catch(error => {
-    throw error;
-  })
-  .finally(() => {
-    return session.close();
-  })
-}
-
-const testData = (query) => {
-  let data = []
-  let session = driver.session();
-  console.log('Started query')
-  return session
-    .run(query)
-    .then(results => {
-      console.log(results.records)
-    })
-    .catch(error => {
-      throw error;
-    })
-    .finally(() => {
-      return session.close();
-    })
-};
-
-const simplifyPath = (path) => {
-  let simplified =
-      (path == 'SpouseToSiblingTo') ||
-      (path == 'SiblingToSpouseTo') ||
-      (path == 'SpouseToSiblingToSpouseTo')
-        ? 'SiblingInLawTo' // Source is the Brother-in-Law, Sister-in-Law, or Sibling-in-Law to End
-
-    : (path == 'SiblingToParentTo') ||
-      (path == 'SpouseToSiblingToParentTo')
-        ? 'ParsibTo' // Source is Uncle, Aunt, or Parsib to End
-
-    : (path == 'ChildToSiblingTo') ||
-      (path == 'ChildToSiblingToSpouseTo')
-        ? 'NiblingTo' // Source is Nephew, Niece, or Nibling to End
-
-    : (path == 'ChildToSiblingToParentTo')
-        ? 'CousinTo'
-
-    : 'Unknown Relationship' // Relationship type is not defined for current path
-
-  return simplified;
 }
 
 // Finds all family member nodes in graph, maps the shortest path between them, then converts the rel path to a direct relationship type
@@ -302,8 +371,9 @@ const getRelationships = () => {
           // console.log('Simplified: ' + simpleRel)
           if (simpleRel == 'Unknown Relationship') {
             console.log(`Complex rel ${relPath.join('')}`)
+          } else {
+            dirRel.push({start, simpleRel, end})
           }
-          dirRel.push({start, simpleRel, end})
         }
       })
 
@@ -318,29 +388,13 @@ const getRelationships = () => {
 }
 
 // Take relationships from getRelationships and create database relationships
-const makeRelationships = (rel) => {
+const submitQuery = (query) => {
   let session = driver.session();
-  console.log(rel)
-  let start = rel.sName;
-  let relation = rel.newRel;
-  let end = rel.eName;
-  console.log(`${start} ${relation} ${end}`)
 
   return session
-    .run(
-      'MATCH (s:Person {name:$start}), (t:Person {name:$end}) \
-      MERGE (s)-[:FAMILY {relation:$relation}]->(t) \
-      RETURN s.name AS sName, t.name AS tName',
-      {
-        start:start,
-        end:end,
-        relation:relation
-      }
-    )
-    .then(results => {
-      results.records.forEach(res => {
-        console.log(res);
-      })
+    .run(query)
+    .then(() => {
+      console.log('Query submitted successfully')
     })
     .catch(error => {
       throw error;
@@ -348,34 +402,6 @@ const makeRelationships = (rel) => {
     .finally(() => {
       return session.close();
     })
-
-  // return rels.forEach(rel => {
-
-  //   // Uncomment the following to see what relationships are being added
-
-  //   session.run(
-  //     'MATCH (s:Person {name:$start}), (t:Person {name:$end}) \
-  //     MERGE (s)-[:FAMILY {relation:$relation}]->(t) \
-  //     RETURN s.name AS sName, t.name AS tName',
-  //     {
-  //       start:start,
-  //       end:end,
-  //       relation:relation
-  //     }
-  //   )
-  //   .then(results => {
-  //     results.records.forEach(res => {
-  //       let sName = res.get('sName');
-  //       let tName = res.get('tName');
-  //     })
-  //   })
-  //   .catch(error => {
-  //     throw error;
-  //   })
-  //   .finally(() => {
-  //     return session.close();
-  //   })
-  // })
 }
 
 exports.getGraph = getGraph;
@@ -383,6 +409,5 @@ exports.getFamily = getFamily;
 exports.checkFamily = checkFamily;
 exports.addFamilyMember = addFamilyMember;
 exports.resetData = resetData;
-exports.testData = testData;
 exports.getRelationships = getRelationships;
-exports.makeRelationships = makeRelationships;
+exports.submitQuery = submitQuery;

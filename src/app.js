@@ -45,87 +45,89 @@ $(function () {
   });
 
   const makeRels = $('#make-rels button');
-  makeRels.on('click', generateRels);
+  makeRels.on('click', genRels);
 
   const testData = $('#test-data button');
-  testData.on('click', () => {
-    console.log('Generating Test Data');
-
-    api
-      .getFamily()
-      .then(family => {
-        let newRels = [];
-        let match = ''
-        let create = 'CREATE '
-        let merge = ''
-        // let mergeR = ''
-        family.forEach((i, idx, array) => {
-          const genOpt = ['M', 'F', 'X']
-          const m = i;
-          let sp = {
-            name: nanoid(),
-            gender: genOpt[Math.floor(Math.random() * 3)],
-            relationship: 'SpouseTo',
-            relReverse: 'SposueTo',
-            target: m.name
-          }
-          let p = {
-            name: nanoid(),
-            gender: genOpt[Math.floor(Math.random() * 3)],
-            relationship: 'ParentTo',
-            relReverse: 'ChildTo',
-            target: m.name
-          }
-          let c = {
-            name: nanoid(),
-            gender: genOpt[Math.floor(Math.random() * 3)],
-            relationship: 'ChildTo',
-            relReverse: 'ParentTo',
-            target: m.name
-          }
-          let s = {
-            name: nanoid(),
-            gender: genOpt[Math.floor(Math.random() * 3)],
-            relationship: 'SiblingTo',
-            relReverse: 'SiblingTo',
-            target: m.name
-          }
-
-          newRels.push(sp, p, c, s);
-
-          match += `MATCH (${m.name}:Person) WHERE ID(${m.name})= ${m.id} `
-
-        })
-        console.log(newRels.length);
-        newRels.slice(0,50).forEach((i, idx, array) => {
-          merge += `MERGE (${i.name})-[:FAMILY {relation:'${i.relationship}'}]->(${i.target}) MERGE (${i.name})<-[:FAMILY {relation:'${i.relReverse}'}]-(${i.target}) `
-          if (idx === array.length - 1){
-            create += `(${i.name}:Person {name:'${i.name}', gender:'${i.gender}'}) `
-          } else {
-            create += `(${i.name}:Person {name:'${i.name}', gender:'${i.gender}'}), `
-          }
-        })
-        let query = match + create + merge + 'RETURN *';
-        console.log(query);
-        api
-          .testData(query)
-          .then(() => {
-            console.log('Test Data Generated');
-            $('.member').remove();
-            $('#graph svg').remove();
-            $('#current-members option').remove();
-          })
-          .finally(() => {
-            renderGraph();
-            makeList();
-          });
-      })
-  });
+  testData.on('click', genData);
 
 
 });
 
-const generateRels = () => {
+const genData = () => {
+  console.log('Generating Test Data');
+
+  api
+    .getFamily()
+    .then(family => {
+      let newRels = [];
+      let match = ''
+      let create = 'CREATE '
+      let merge = ''
+      // let mergeR = ''
+      family.forEach((i, idx, array) => {
+        const genOpt = ['M', 'F', 'X']
+        const m = i;
+        let sp = {
+          name: nanoid(),
+          gender: genOpt[Math.floor(Math.random() * 3)],
+          relationship: 'SpouseTo',
+          relReverse: 'SposueTo',
+          target: m.name
+        }
+        let p = {
+          name: nanoid(),
+          gender: genOpt[Math.floor(Math.random() * 3)],
+          relationship: 'ParentTo',
+          relReverse: 'ChildTo',
+          target: m.name
+        }
+        let c = {
+          name: nanoid(),
+          gender: genOpt[Math.floor(Math.random() * 3)],
+          relationship: 'ChildTo',
+          relReverse: 'ParentTo',
+          target: m.name
+        }
+        let s = {
+          name: nanoid(),
+          gender: genOpt[Math.floor(Math.random() * 3)],
+          relationship: 'SiblingTo',
+          relReverse: 'SiblingTo',
+          target: m.name
+        }
+
+        newRels.push(sp, p, c, s);
+
+        match += `MATCH (${m.name}:Person) WHERE ID(${m.name})= ${m.id} `
+
+      })
+      console.log(newRels.length);
+      newRels.slice(0,50).forEach((i, idx, array) => {
+        merge += `MERGE (${i.name})-[:FAMILY {relation:'${i.relationship}'}]->(${i.target}) MERGE (${i.name})<-[:FAMILY {relation:'${i.relReverse}'}]-(${i.target}) `
+        if (idx === array.length - 1){
+          create += `(${i.name}:Person {name:'${i.name}', gender:'${i.gender}'}) `
+        } else {
+          create += `(${i.name}:Person {name:'${i.name}', gender:'${i.gender}'}), `
+        }
+      })
+      let query = match + create + merge + 'RETURN *';
+      console.log(query);
+      api
+        .submitQuery(query)
+        .then(() => {
+          console.log('Test Data Generated');
+          $('.member').remove();
+          $('#graph svg').remove();
+          $('#current-members option').remove();
+        })
+        .finally(() => {
+          renderGraph();
+          makeList();
+        });
+    })
+}
+
+const genRels = () => {
   console.log('Making Relationships');
   let basicRels = [];
   api
@@ -149,10 +151,14 @@ const generateRels = () => {
         merge += `MERGE (${sName})-[:FAMILY {relation:'${rel}'}]->(${eName}) `
       })
       let query = match + merge + 'RETURN *';
+
       console.log(query);
+      api.submitQuery(query);
+    })
+    .then(() => {
+      console.log('made relationships')
     })
 }
-
 
 const renderGraph = () => {
   // var width = window.innerWidth, height = 800;
@@ -333,15 +339,38 @@ const addMember = (m, r, n, g) => {
   query.tar = parseInt(m);
   query.gen = g;
 
-  console.log(typeof query.tar);
-  // query.push({src, rel, rev, tar, gen});
-
   console.log(query);
 
   if (query.src !== "" && query.src !== undefined) {
     console.log(`Valid name submitted. Creating person ${query.src} who is ${query.gen}. ${query.src} is ${query.rel} ${query.tar} and ${query.tar} is ${query.rev} ${query.src}.`)
     api
       .addFamilyMember(query)
+      .then(results => {
+        let match = '';
+        let merge = '';
+
+        console.log(results)
+
+        results[0].members.forEach(member => {
+          const mID = member.identity.low;
+          const mName = member.properties.name;
+
+          match += `MATCH (${mName}:Person) WHERE ID(${mName})= ${mID} `;
+        })
+
+        results[0].dirRel.forEach((i, idx, array) => {
+          const sName = i[Object.keys(i)[0]].properties.name;
+          const rel = i.simpleRel;
+          const eName = i[Object.keys(i)[2]].properties.name;
+          console.log(`${sName} ${rel} ${eName}`);
+
+          merge += `MERGE (${sName})-[:FAMILY {relation:'${rel}'}]->(${eName}) `
+        })
+
+        let query = match + merge + 'RETURN *';
+
+        api.submitQuery(query);
+      })
       .then(() => {
         $('.member').remove();
         $('#graph svg').remove();
