@@ -10,6 +10,7 @@
   "scripts": {
     "start": "webpack-dev-server --open --config webpack.dev.js",
     "build": "webpack --config webpack.prod.js",
+    "start-build": "webpack-dev-server --open --config webpack.dev.js",
     "clean": "rimraf build",
     "heroku-postbuild": "webpack --config webpack.prod.js"
   },
