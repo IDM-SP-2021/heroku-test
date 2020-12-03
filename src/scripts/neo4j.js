@@ -135,11 +135,21 @@ const addFamilyMember = (queryString) => {
        MATCH (t:Person) WHERE ID(t)= $t\
        CREATE (s)-[:FAMILY {relation:$r}]->(t), \
               (t)-[:FAMILY {relation:$rev}]->(s) \
-       RETURN *',
+       WITH t \
+       MATCH (p:Person) \
+       WITH collect(p) AS nodes \
+       MATCH (n:Person {name:$s}) \
+       UNWIND nodes AS m \
+       WITH * WHERE id(n) <> id(m) \
+       MATCH path = allShortestPaths( (n)-[*..10]->(m) ) \
+       MATCH revPath = allShortestPaths( (m)-[*..10]->(n) ) \
+       RETURN n AS start, relationships(path) AS relationship, m AS end, relationships(revPath) AS revRelationship',
        {s:s, g:g, r:r, rev:rev, t:t}
     )
-    .then(result => {
-      console.log(result.records);
+    .then(results => {
+      results.records.forEach(res => {
+        console.log(res);
+      })
     })
     .catch(error => {
       throw error;
