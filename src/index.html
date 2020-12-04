@@ -15,43 +15,76 @@
     <h1><span class="brand-name">afiye.</span> Proof of Concept</h1>
   </header>
   <main>
-    <div id="family-info">
-      <h2>Current Family Members</h2>
-      <ul id="node-list">
-        <!-- Family member names will be injected here -->
-      </ul>
+    <div id="container">
+      <div id="family-info">
+        <h2>Current Family Members</h2>
+        <ul id="node-list">
+          <!-- Family member names will be injected here -->
+        </ul>
 
-      <form id="add-member">
-        <div class="form-control">
-          <label for="new-name">Add a new family member:</label>
-          <input type="text" name="new-name" id="new-name" required>
+        <h3>Add a Family Member:</h3>
+        <form id="add-member">
+          <div class="form-control">
+            <label for="new-name">New family member's name:</label>
+            <input type="text" name="new-name" id="new-name" required>
+          </div>
+          <div class="form-control">
+            <label for="gender">Gender:</label>
+            <select name="gender" id="gender" required>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+              <option value="X">Non-Binary</option>
+            </select>
+          </div>
+          <div class="form-control">
+            <label for="relationship">Relationship to a current family member:</label>
+            <select name="relationship" id="relationship" required>
+              <option value="ChildTo">Child to</option>
+              <option value="ParentTo">Parent to</option>
+              <option value="SiblingTo">Sibling to</option>
+            </select>
+          </div>
+          <div class="form-control">
+            <label for="current-members">Current family member:</label>
+            <select name="current-members" id="current-members" required>
+              <!-- Family member names will be injected here -->
+            </select>
+          </div>
+          <div class="form-control">
+            <input type="submit" value="Add New Member">
+          </div>
+        </form>
+      </div>
+
+      <div id="memory-info">
+        <h2>Current Memories</h2>
+        <div id="memories">
+          <!-- Memories will be injected here -->
         </div>
-        <div class="form-control">
-          <label for="gender">Gender of new member:</label>
-          <select name="gender" id="gender">
-            <option value="M">Male</option>
-            <option value="F">Female</option>
-            <option value="X">Non-Binary</option>
-          </select>
-        </div>
-        <div class="form-control">
-          <label for="relationship">Relationship to a current family member:</label>
-          <select name="relationship" id="relationship">
-            <option value="ChildTo">Child to</option>
-            <option value="ParentTo">Parent to</option>
-            <option value="SiblingTo">Sibling to</option>
-          </select>
-        </div>
-        <div class="form-control">
-          <label for="current-members">Current family member:</label>
-          <select name="current-members" id="current-members">
-            <!-- Family member names will be injected here -->
-          </select>
-        </div>
-        <div class="form-control">
-          <input type="submit" value="Add New Member">
-        </div>
-      </form>
+
+        <h3>Add a Memory:</h3>
+        <form id="add-memory">
+          <div class="form-control">
+            <label for="mem-title">Memory title:</label>
+            <input type="text" name="mem-title" id="mem-title" required>
+          </div>
+          <div class="form-control">
+            <label for="mem-date">Memory date:</label>
+            <input type="date" name="mem-date" id="mem-date" required>
+          </div>
+          <div class="form-control">
+            <label for="mem-text">Memory text content:</label>
+            <textarea name="mem-text" id="mem-text" cols="30" rows="5" required></textarea>
+          </div>
+          <fieldset id="family-options">
+            <legend>Tag Family Members:</legend>
+            <!-- Family member names will be injected here with a checkbox -->
+          </fieldset>
+          <div class="form-control">
+            <input type="submit" value="Add New Memory">
+          </div>
+        </form>
+      </div>
     </div>
 
     <div id="graph"></div>

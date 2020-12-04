@@ -44,8 +44,8 @@ Access the app (insert URL here)
    (Jane:Person {name: 'Jane', gender: 'F'}),
    (Joe:Person {name: 'Joe', gender: 'M'}),
    (Rob:Person {name: 'Rob', gender: 'M'}),
-   (n:MEMORY {title:"Rob's High School Graduation", date:'6-3-20', text:'Today Rob finished his high school career! He is off to college now!'}),
-   (m:MEMORY {title:"Fifteen Year Wedding Anniversary", date:'12-4-19', text:'Hard to believe it has been fifteen years already!'})
+   (n:Memory {title:"Rob's High School Graduation", date:'6-3-20', text:'Today Rob finished his high school career! He is off to college now!'}),
+   (m:Memory {title:"Fifteen Year Wedding Anniversary", date:'12-4-19', text:'Hard to believe it has been fifteen years already!'})
    (Jill)-[:FAMILY {relation: 'SpouseTo'}]->(Jack),
    (Jack)-[:FAMILY {relation: 'SpouseTo'}]->(Jill),
    (Jill)-[:FAMILY {relation: 'ParentTo'}]->(Sam),
