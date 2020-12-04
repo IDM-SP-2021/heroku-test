@@ -1,7 +1,14 @@
 # Senior Project Proof of Concept
 
-Proof of concept app built on Heroku
-Access the app (insert URL here)
+## About
+
+Proof of concept application to demonstrate technical feasibility of creating a social network application for families using Neo4j.
+
+[Access the live app demo](https://idm-sp-poc.herokuapp.com/)
+
+Neo4j is an open source graph database software. [Learn more](https://neo4j.com/)
+
+This proof of concept renders the data of family members in an interactable diagram. Additionally, users can interact with the database by either adding a new family member or new member using the respective forms.
 
 ## Feature Checklist
 
@@ -9,9 +16,9 @@ Access the app (insert URL here)
 - [x] Visualize graph DB in web view
 - [ ] Visualize graph DB in tree view
 - [X] Add a person to the family tree
-  - [ ] STRETCH: Automatically generate connections
-- [ ] View all memories in the family
-- [ ] Create a new memory
+  - [X] STRETCH: Automatically generate connections
+- [X] View all memories in the family
+- [X] Create a new memory
 
 ## Setup
 
@@ -157,9 +164,26 @@ Return all the shortest paths between all the nodes. This will be used to find h
    RETURN path
    ```
 
+## How to Use
 
-CREATE (n:MEMORY {title:"Rob's High School Graduation", date:'6-3-20', text:'Today Rob finished his high school career! He is off to college now!'})
-WITH n
-MATCH (Rob:Person {name:'Rob'}), (John:Person {name:'John'}), (Jane:Person {name:'Jane'})
-CREATE (John)-[:OWNER]->(n), (Jane)-[:TAGGED]->(n), (Rob)-[:TAGGED]->(n)
-RETURN *
+### The Family Diagram
+
+- Click and drag on the blank canvas to pan
+- Scroll on blank canvas to zoom
+- Click and drag a node to move it around the canvas
+
+### Add a Family Member Form
+
+- Name the new family member
+- Select their gender (Male, Female, or Non-Binary)
+- Select their relationship to a family member currently in the database
+- Select the family member currently in the database
+- On submission the new family member will be added to the database, the diagram as well as any lists of the family members will all refresh
+
+### Add a Memory Form
+
+- Give the new memory a title
+- Select a date that this memory happened
+- Add a text description for the memory
+- Select one or more family members
+- On submission the memory list will refresh
